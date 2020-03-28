@@ -1,3 +1,4 @@
+//circle in between
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,7 +77,7 @@ int main(void)
 
     clear_screen();
 
-    circleBres(50, 50, 30);    // function call 
+    circleBres(150, 100, 40);    // function call 
 
 	
 	while(1){
