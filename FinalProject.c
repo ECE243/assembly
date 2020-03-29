@@ -35,21 +35,40 @@ void swap(int* a, int* b);
 void updateGameState();
 
 
-int main(void) {
-    int increment = 1;
-    int EndOfScreen = 0;
-
-    volatile int* pixel_ctrl_ptr = (int*) 0xFF203020;
+int main(void)
+{
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
-
+    int x=150;
+	int y=100;
+    int reverse=0;
     clear_screen();
-
-    circleBres(150, 100, 40);    // function call
-
-
-    while (1) {
+    
+    while(1){
+        
+        
+         circleBres(x, y, 40,0x07E0);    //from 40 to 197
+        waiting();
+        circleBres(x, y, 40,0x0000);    //from 40 to 97
+        
+        if(reverse==0)
+        {
+            y+=1;
+            if(y==197)
+                reverse=1;
+        }
+        if(reverse==1)
+        {
+            y-=1;
+            if(y==40)
+                reverse=0;
+        }
+        
     }
+    
+    clear_screen();
+    
     return 0;
 }
 
@@ -77,41 +96,45 @@ void clear_screen() {
     }
 }
 
-void drawCircle(int xc, int yc, int x, int y) {
-    plot_pixel(xc + x, yc + y, 0x001F);
-    plot_pixel(xc - x, yc + y, 0x001F);
-    plot_pixel(xc + x, yc - y, 0x001F);
-    plot_pixel(xc - x, yc - y, 0x001F);
-    plot_pixel(xc + y, yc + x, 0x001F);
-    plot_pixel(xc - y, yc + x, 0x001F);
-    plot_pixel(xc + y, yc - x, 0x001F);
-    plot_pixel(xc - y, yc - x, 0x001F);
-}
-
-// Function for circle-generation
-// using Bresenham's algorithm
-void circleBres(int xc, int yc, int r) {
-    int x = 0, y = r;
-    int d = 3 - 2 * r;
-    drawCircle(xc, yc, x, y);
-    while (y >= x) {
-        // for each pixel we will
-        // draw all eight pixels
-
-        x++;
-
-        // check for decision parameter
-        // and correspondingly
-        // update d, x, y
-        if (d > 0) {
-            y--;
-            d = d + 4 * (x - y) + 10;
-        } else {
-            d = d + 4 * x + 6;
-        }
-        drawCircle(xc, yc, x, y);
-    }
-}
+void circleBres(int xc, int yc, int r, short int color)
+{ 	short int colour = color;
+    int x = 0, y = r; 
+    int d = 3 - 2 * r; 
+    plot_pixel(xc+x, yc+y, colour);
+    plot_pixel(xc-x, yc+y, colour);
+    plot_pixel(xc+x, yc-y, colour);
+    plot_pixel(xc-x, yc-y, colour);
+    plot_pixel(xc+y, yc+x, colour);
+    plot_pixel(xc-y, yc+x, colour);
+    plot_pixel(xc+y, yc-x, colour);
+    plot_pixel(xc-y, yc-x, colour); 
+    while (y >= x) 
+    { 
+        // for each pixel we will 
+        // draw all eight pixels 
+          
+        x++; 
+  
+        // check for decision parameter 
+        // and correspondingly  
+        // update d, x, y 
+        if (d > 0) 
+        { 
+            y--;  
+            d = d + 4 * (x - y) + 10; 
+        } 
+        else
+            d = d + 4 * x + 6; 
+    plot_pixel(xc+x, yc+y, colour);
+    plot_pixel(xc-x, yc+y, colour);
+    plot_pixel(xc+x, yc-y, colour);
+    plot_pixel(xc-x, yc-y, colour);
+    plot_pixel(xc+y, yc+x, colour);
+    plot_pixel(xc-y, yc+x, colour);
+    plot_pixel(xc+y, yc-x, colour);
+    plot_pixel(xc-y, yc-x, colour); 
+    } 
+} 
 
 
 void plot_pixel(int x, int y, short int line_color) {
