@@ -28,7 +28,9 @@ void waiting();
 void draw_line(int x0, int y0, int x1, int y1, short int color);
 void plot_pixel(int x, int y, short int line_color);
 void swap(int* a, int* b);
-
+void circleBres(Bubble ball, short int color);
+Bubble initialise_bouncing_balls(Bubble bouncingBalls,int x , int y , int radius);
+void reverse(Bubble reverse_ball,int reverse);
 
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
@@ -40,30 +42,31 @@ int main(void)
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     /* Read location of the pixel buffer from the pixel buffer controller */
     pixel_buffer_start = *pixel_ctrl_ptr;
-    int x=150;
-	int y=100;
-    int reverse=0;
+    Bubble ball = initialise_bouncing_balls(ball,150 , 100 , 40);
     clear_screen();
+	int reverse =0;
     
     while(1){
         
         
-         circleBres(x, y, 40,0x07E0);    //from 40 to 197
+        circleBres( ball, 0x07E0);
         waiting();
-        circleBres(x, y, 40,0x0000);    //from 40 to 97
-        
-        if(reverse==0)
+        circleBres( ball,0x0000);    //from 40 to 97
+		
+		        if(reverse==0)
         {
-            y+=1;
-            if(y==197)
+            ball.y+=1;
+            if(ball.y==197)
                 reverse=1;
         }
         if(reverse==1)
         {
-            y-=1;
-            if(y==40)
+            ball.y-=1;
+            if(ball.y==40)
                 reverse=0;
         }
+
+
         
     }
     
@@ -81,6 +84,13 @@ void fetchInputs() {
 
 //----------Graphics Function Definitions---------------
 //------------------------------------------------------
+Bubble initialise_bouncing_balls(Bubble bouncingBalls,int x , int y , int radius){
+bouncingBalls.x=x;
+bouncingBalls.y=y;
+bouncingBalls.radius=radius;
+return bouncingBalls;
+
+}
 
 void swap(int* a, int* b) {
     int temp = *a;
@@ -96,18 +106,18 @@ void clear_screen() {
     }
 }
 
-void circleBres(int xc, int yc, int r, short int color)
+void circleBres(Bubble ball, short int color)
 { 	short int colour = color;
-    int x = 0, y = r; 
-    int d = 3 - 2 * r; 
-    plot_pixel(xc+x, yc+y, colour);
-    plot_pixel(xc-x, yc+y, colour);
-    plot_pixel(xc+x, yc-y, colour);
-    plot_pixel(xc-x, yc-y, colour);
-    plot_pixel(xc+y, yc+x, colour);
-    plot_pixel(xc-y, yc+x, colour);
-    plot_pixel(xc+y, yc-x, colour);
-    plot_pixel(xc-y, yc-x, colour); 
+    int x = 0, y = ball.radius; 
+    int d = 3 - 2 * ball.radius; 
+    plot_pixel(ball.x+x, ball.y+y, colour);
+    plot_pixel(ball.x-x, ball.y+y, colour);
+    plot_pixel(ball.x+x, ball.y-y, colour);
+    plot_pixel(ball.x-x, ball.y-y, colour);
+    plot_pixel(ball.x+y, ball.y+x, colour);
+    plot_pixel(ball.x-y, ball.y+x, colour);
+    plot_pixel(ball.x+y, ball.y-x, colour);
+    plot_pixel(ball.x-y, ball.y-x, colour); 
     while (y >= x) 
     { 
         // for each pixel we will 
@@ -125,14 +135,14 @@ void circleBres(int xc, int yc, int r, short int color)
         } 
         else
             d = d + 4 * x + 6; 
-    plot_pixel(xc+x, yc+y, colour);
-    plot_pixel(xc-x, yc+y, colour);
-    plot_pixel(xc+x, yc-y, colour);
-    plot_pixel(xc-x, yc-y, colour);
-    plot_pixel(xc+y, yc+x, colour);
-    plot_pixel(xc-y, yc+x, colour);
-    plot_pixel(xc+y, yc-x, colour);
-    plot_pixel(xc-y, yc-x, colour); 
+    plot_pixel(ball.x+x, ball.y+y, colour);
+    plot_pixel(ball.x-x, ball.y+y, colour);
+    plot_pixel(ball.x+x, ball.y-y, colour);
+    plot_pixel(ball.x-x, ball.y-y, colour);
+    plot_pixel(ball.x+y, ball.y+x, colour);
+    plot_pixel(ball.x-y, ball.y+x, colour);
+    plot_pixel(ball.x+y, ball.y-x, colour);
+    plot_pixel(ball.x-y, ball.y-x, colour); 
     } 
 } 
 
@@ -152,6 +162,21 @@ void waiting() {
     }
 }
 
+void reverse(Bubble reverse_ball,int reverse){
+        if(reverse==0)
+        {
+            reverse_ball.y+=1;
+            if(reverse_ball.y==197)
+                reverse=1;
+        }
+        if(reverse==1)
+        {
+            reverse_ball.y-=1;
+            if(reverse_ball.y==40)
+                reverse=0;
+        }
+
+    }
 
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
