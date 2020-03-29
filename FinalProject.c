@@ -4,10 +4,28 @@
 #define SCREEN_SIZE_X 320
 #define SCREEN_SIZE_Y 240
 
+#define GRAVITATIONAL_CONSTANT -5
+
+// Various data defining the state of a bubble that is bouncing across the screen
 typedef struct bubble {
-    int x, y;
+    int centerX, centerY;
     int radius;
+    int xVelocity, yVelocity;
 } Bubble;
+
+/* Later, we will need to use a linked list
+
+// An item in a singly-linked list of Bubble structs
+struct bubbleLinkedListItem {
+    Bubble* bubbleData;
+    struct bubbleLinkedListItem* next;
+};
+typedef struct bubbleLinkedListItem* BubbleLinkedList;
+// The list of all displayed bubbles
+BubbleLinkedList* bubbles = NULL;
+*/
+// For now, an array of size 5 is okay for testing
+Bubble bubbles[5];
 
 typedef struct player {
     int x, y;
@@ -35,6 +53,10 @@ void reverse(Bubble reverse_ball,int reverse);
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
 void updateGameState();
+
+void moveBubble(Bubble* bubble);
+void accelerateBubbleDown(Bubble* bubble);
+void bounceBubbleOffScreen(Bubble* bubble);
 
 
 int main(void)
@@ -183,6 +205,53 @@ void reverse(Bubble reverse_ball,int reverse){
 void updateGameState() {
 
 }
+
+void moveBubble(Bubble* bubble) {
+    bubble->centerX += bubble->xVelocity;
+    bubble->centerY += bubble->yVelocity;
+}
+
+void accelerateBubbleDown(Bubble* bubble) {
+    bubble->yVelocity -= GRAVITATIONAL_CONSTANT;
+}
+
+void bounceBubbleOffScreen(Bubble* bubble) {
+    // Bounce the bubble off any of the four edges of the screen
+    // In each bounce, two things are done:
+    //
+    // 1) "Push-back" is accounted for in the case that the bubble
+    //    went too far past the boundary, by re-positioning it so that
+    //    it just touches the boundary
+    //
+    // 2) A perfectly elastic bounce is performed (the velocity is simply
+    //    flipped in direction but the magnitude is preserved)
+
+    // Left edge
+    if (bubble->centerX - bubble->radius <= 0) {
+        bubble->centerX = bubble->radius;
+        bubble->xVelocity *= -1;
+    }
+
+    // Right edge
+    if (bubble->centerX + bubble->radius >= SCREEN_SIZE_X) {
+        bubble->centerX = SCREEN_SIZE_X - bubble->radius;
+        bubble->xVelocity *= -1;
+    }
+
+    // Top edge
+    if (bubble->centerY - bubble->radius <= 0) {
+        bubble->centerY = bubble->radius;
+        bubble->yVelocity *= -1;
+    }
+
+    // Bottom edge
+    if (bubble->centerY + bubble->radius >= SCREEN_SIZE_Y) {
+        bubble->centerY = SCREEN_SIZE_Y - bubble->radius;
+        bubble->yVelocity *= -1;
+    }
+}
+
+
 
 
 
