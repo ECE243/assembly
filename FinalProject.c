@@ -34,10 +34,12 @@ typedef struct player {
 
 //----------User Input Function Declarations------------
 //------------------------------------------------------
+void initializeInputIO();
 void fetchInputs();
 
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
+void initializeGraphics();
 void drawScreen();
 
 volatile int pixel_buffer_start; // global variable
@@ -45,13 +47,14 @@ void clear_screen();
 void waiting();
 void draw_line(int x0, int y0, int x1, int y1, short int color);
 void plot_pixel(int x, int y, short int line_color);
-void swap(int* a, int* b);
-void circleBres(Bubble ball, short int color);
-Bubble initialise_bouncing_balls(Bubble bouncingBalls,int x , int y , int radius);
-void reverse(Bubble reverse_ball,int reverse);
+void circleBres(Bubble* bubble, short int color);
+
+volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
+
 
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
+void initializeGame();
 void updateGameState();
 
 void moveBubble(Bubble* bubble);
@@ -59,46 +62,26 @@ void accelerateBubbleDown(Bubble* bubble);
 void bounceBubbleOffScreen(Bubble* bubble);
 
 
-int main(void)
-{
-    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-    /* Read location of the pixel buffer from the pixel buffer controller */
-    pixel_buffer_start = *pixel_ctrl_ptr;
-    Bubble ball = initialise_bouncing_balls(ball,150 , 100 , 40);
-    clear_screen();
-	int reverse =0;
-    
-    while(1){
-        
-        
-        circleBres( ball, 0x07E0);
-        waiting();
-        circleBres( ball,0x0000);    //from 40 to 97
-		
-		        if(reverse==0)
-        {
-            ball.y+=1;
-            if(ball.y==197)
-                reverse=1;
-        }
-        if(reverse==1)
-        {
-            ball.y-=1;
-            if(ball.y==40)
-                reverse=0;
-        }
+int main(void) {
+    initializeGraphics();
+    initializeInputIO();
+    initializeGame();
 
-
-        
+    while (1) {
+        drawScreen();
+        fetchInputs();
+        updateGameState();
     }
-    
-    clear_screen();
-    
+
     return 0;
 }
 
 //----------User Input Function Definitions-------------
 //------------------------------------------------------
+void initializeInputIO() {
+
+}
+
 void fetchInputs() {
 
 }
@@ -106,18 +89,22 @@ void fetchInputs() {
 
 //----------Graphics Function Definitions---------------
 //------------------------------------------------------
-Bubble initialise_bouncing_balls(Bubble bouncingBalls,int x , int y , int radius){
-bouncingBalls.x=x;
-bouncingBalls.y=y;
-bouncingBalls.radius=radius;
-return bouncingBalls;
-
+void initializeGraphics() {
+    /* Read location of the pixel buffer from the pixel buffer controller */
+    pixel_buffer_start = *pixel_ctrl_ptr;
+    clear_screen();
 }
 
-void swap(int* a, int* b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
+void drawScreen() {
+    for (int i = 0; i < 5; i++) {
+        circleBres(bubbles + i, 0x07E0);
+    }
+
+    waiting();
+
+    for (int i = 0; i < 5; i++) {
+        circleBres(bubbles + i, 0x0000);
+    }
 }
 
 void clear_screen() {
@@ -128,45 +115,43 @@ void clear_screen() {
     }
 }
 
-void circleBres(Bubble ball, short int color)
-{ 	short int colour = color;
-    int x = 0, y = ball.radius; 
-    int d = 3 - 2 * ball.radius; 
-    plot_pixel(ball.x+x, ball.y+y, colour);
-    plot_pixel(ball.x-x, ball.y+y, colour);
-    plot_pixel(ball.x+x, ball.y-y, colour);
-    plot_pixel(ball.x-x, ball.y-y, colour);
-    plot_pixel(ball.x+y, ball.y+x, colour);
-    plot_pixel(ball.x-y, ball.y+x, colour);
-    plot_pixel(ball.x+y, ball.y-x, colour);
-    plot_pixel(ball.x-y, ball.y-x, colour); 
-    while (y >= x) 
-    { 
+void circleBres(Bubble* bubble, short int color) {
+    short int colour = color;
+    int x = 0, y = bubble->radius;
+    int d = 3 - 2 * bubble->radius;
+    plot_pixel(bubble->centerX + x, bubble->centerY + y, colour);
+    plot_pixel(bubble->centerX - x, bubble->centerY + y, colour);
+    plot_pixel(bubble->centerX + x, bubble->centerY - y, colour);
+    plot_pixel(bubble->centerX - x, bubble->centerY - y, colour);
+    plot_pixel(bubble->centerX + y, bubble->centerY + x, colour);
+    plot_pixel(bubble->centerX - y, bubble->centerY + x, colour);
+    plot_pixel(bubble->centerX + y, bubble->centerY - x, colour);
+    plot_pixel(bubble->centerX - y, bubble->centerY - x, colour);
+    while (y >= x) {
         // for each pixel we will 
         // draw all eight pixels 
-          
-        x++; 
-  
+
+        x++;
+
         // check for decision parameter 
         // and correspondingly  
         // update d, x, y 
-        if (d > 0) 
-        { 
-            y--;  
-            d = d + 4 * (x - y) + 10; 
-        } 
-        else
-            d = d + 4 * x + 6; 
-    plot_pixel(ball.x+x, ball.y+y, colour);
-    plot_pixel(ball.x-x, ball.y+y, colour);
-    plot_pixel(ball.x+x, ball.y-y, colour);
-    plot_pixel(ball.x-x, ball.y-y, colour);
-    plot_pixel(ball.x+y, ball.y+x, colour);
-    plot_pixel(ball.x-y, ball.y+x, colour);
-    plot_pixel(ball.x+y, ball.y-x, colour);
-    plot_pixel(ball.x-y, ball.y-x, colour); 
-    } 
-} 
+        if (d > 0) {
+            y--;
+            d = d + 4 * (x - y) + 10;
+        } else {
+            d = d + 4 * x + 6;
+        }
+        plot_pixel(bubble->centerX + x, bubble->centerY + y, colour);
+        plot_pixel(bubble->centerX - x, bubble->centerY + y, colour);
+        plot_pixel(bubble->centerX + x, bubble->centerY - y, colour);
+        plot_pixel(bubble->centerX - x, bubble->centerY - y, colour);
+        plot_pixel(bubble->centerX + y, bubble->centerY + x, colour);
+        plot_pixel(bubble->centerX - y, bubble->centerY + x, colour);
+        plot_pixel(bubble->centerX + y, bubble->centerY - x, colour);
+        plot_pixel(bubble->centerX - y, bubble->centerY - x, colour);
+    }
+}
 
 
 void plot_pixel(int x, int y, short int line_color) {
@@ -174,8 +159,7 @@ void plot_pixel(int x, int y, short int line_color) {
 }
 
 void waiting() {
-    volatile int* pixel_ctrl_ptr = 0xFF203020;
-    volatile int* status = (int*) 0xFF20302C;
+    volatile int* status = pixel_ctrl_ptr + 3;
 
     *pixel_ctrl_ptr = 1;
 
@@ -184,26 +168,25 @@ void waiting() {
     }
 }
 
-void reverse(Bubble reverse_ball,int reverse){
-        if(reverse==0)
-        {
-            reverse_ball.y+=1;
-            if(reverse_ball.y==197)
-                reverse=1;
-        }
-        if(reverse==1)
-        {
-            reverse_ball.y-=1;
-            if(reverse_ball.y==40)
-                reverse=0;
-        }
-
-    }
-
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
-void updateGameState() {
+void initializeGame() {
+    for (int i = 0; i < 5; i++) {
+        bubbles[i].centerX = 50 * i;
+        bubbles[i].centerY = 50;
+        bubbles[i].radius = 20;
 
+        bubbles[i].xVelocity = 1;
+        bubbles[i].yVelocity = -5;
+    }
+}
+
+void updateGameState() {
+    for (int i = 0; i < 5; i++) {
+        moveBubble(bubbles + i);
+        accelerateBubbleDown(bubbles + i);
+        bounceBubbleOffScreen(bubbles + i);
+    }
 }
 
 void moveBubble(Bubble* bubble) {
