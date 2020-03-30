@@ -104,8 +104,11 @@ void removeBubbleFromList(BubbleLinkedListItem* listHead, Bubble* bubbleToRemove
 
 typedef struct player {
     int x, y;
-    int radius;
+    int sizeX, sizeY;
 } Player;
+
+// TODO: Temporary.. will add a linked list for this shortly
+Player player1;
 
 //----------User Input Function Declarations------------
 //------------------------------------------------------
@@ -135,7 +138,9 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead);
 void moveBubble(Bubble* bubble);
 void accelerateBubbleDown(Bubble* bubble);
 void bounceBubbleOffScreen(Bubble* bubble);
+bool checkBubblePlayerCollision(Bubble* bubble, Player* player);
 
+bool gameOver = false;
 
 int main(void) {
     initializeGraphics();
@@ -143,7 +148,7 @@ int main(void) {
     // The list of all displayed bubbles
     BubbleLinkedListItem* bubblesListHead = initializeGame();
 
-    while (1) {
+    while (!gameOver) {
         drawScreen(bubblesListHead);
         fetchInputs();
         updateGameState(bubblesListHead);
@@ -253,7 +258,7 @@ void waiting() {
 BubbleLinkedListItem* initializeGame() {
     BubbleLinkedListItem* bubblesListHead = NULL;
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 1; i++) {
         Bubble* bubbleToAdd = malloc(sizeof(Bubble));
         bubbleToAdd->centerX = 50 * i;
         bubbleToAdd->centerY = 50;
@@ -265,6 +270,11 @@ BubbleLinkedListItem* initializeGame() {
         addBubbleToList(&bubblesListHead, bubbleToAdd);
     }
 
+    player1.x = SCREEN_SIZE_X / 2 - 10;
+    player1.y = SCREEN_SIZE_Y - 20;
+    player1.sizeX = 20;
+    player1.sizeY = 40;
+
     return bubblesListHead;
 }
 
@@ -273,6 +283,12 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead) {
         moveBubble(bubbleListHead->bubbleData);
         accelerateBubbleDown(bubbleListHead->bubbleData);
         bounceBubbleOffScreen(bubbleListHead->bubbleData);
+
+        if (checkBubblePlayerCollision(bubbleListHead->bubbleData, &player1)) {
+            gameOver = true;
+            break;
+        }
+
         bubbleListHead = bubbleListHead->next;
     }
 }
@@ -322,6 +338,12 @@ void bounceBubbleOffScreen(Bubble* bubble) {
     }
 }
 
+bool checkBubblePlayerCollision(Bubble* bubble, Player* player) {
+    return (bubble->centerX + bubble->radius >= player->x)
+                && (bubble->centerX - bubble->radius <= player->x + player->sizeX)
+                && (bubble->centerY + bubble->radius >= player->y)
+                && (bubble->centerY - bubble->radius <= player->y + player->sizeY);
+}
 
 
 
