@@ -50,7 +50,6 @@ typedef struct bubble {
 typedef struct bubbleLinkedListItem {
     Bubble* bubbleData;
     struct bubbleLinkedListItem* next;
-<<<<<<< HEAD
 } BubbleLinkedListItem;
 
 void addBubbleToList(BubbleLinkedListItem** listHead, Bubble* bubbleToAdd) {
@@ -135,15 +134,6 @@ void removeBubbleFromList(BubbleLinkedListItem* listHead, Bubble* bubbleToRemove
 
     removeBubbleAfter(listHead);
 }
-=======
-};
-typedef struct bubbleLinkedListItem* BubbleLinkedList;
-// The list of all displayed bubbles
-BubbleLinkedList* bubbles = NULL;
-*/
-// For now, an array of size 5 is okay for testing
-Bubble bubbles[1];
->>>>>>> sprite added
 
 typedef struct player {
     int x, y;
