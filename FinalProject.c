@@ -32,8 +32,6 @@ int data[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x28, 0x11, 0x8c, 0x52, 0x8e, 0x83, 0x0b, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe6, 0x10, 0x28, 0x11, 0x6a, 0x19, 0x6a, 0x19, 0x6b, 0x4a, 0xea, 0x39, 
   0xe6, 0x10, 0xc9, 0x31, 0x6b, 0x4a, 0x49, 0x52, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x19, 0xff, 0xff, 0x00, 0x10, 0xa5, 0x08, 0x24, 0x00, 0x45, 0x00,};
 
-
-
 #define SCREEN_SIZE_X 320
 #define SCREEN_SIZE_Y 240
 
@@ -159,7 +157,6 @@ void waiting();
 void draw_line(int x0, int y0, int x1, int y1, short int color);
 void plot_pixel(int x, int y, short int line_color);
 void circleBres(Bubble* bubble, short int color);
-void drawPlayer();
 
 volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 
@@ -185,8 +182,8 @@ int main(void) {
     while (!gameOver) {
         drawScreen(bubblesListHead);
         fetchInputs();
+		drawPlayer();
         updateGameState(bubblesListHead);
-        drawPlayer();
     }
 
     return 0;
@@ -210,7 +207,33 @@ void initializeGraphics() {
     pixel_buffer_start = *pixel_ctrl_ptr;
     clear_screen();
 }
+void drawPlayer(){
 
+    int i = 0, j = 0;
+
+    for (int k = 0; k < 22 * 2 * 30 - 1; k += 2) {
+
+
+        int red = ((data[k + 1] & 0xF8) >> 3) << 11;
+        int green = (((data[k] & 0xE0) >> 5)) | ((data[k + 1] & 0x7) << 3);
+
+        int blue = (data[k] & 0x1f);
+
+        short int p = red | ((green << 5) | blue);
+
+        plot_pixel(0 + i, j, p);
+
+        i += 1;
+        if (i == 22) {
+            i = 0;
+            j += 1;
+        }
+
+    }
+
+
+
+}
 void drawScreen(BubbleLinkedListItem* bubbleListHead) {
     BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
@@ -381,36 +404,6 @@ bool checkBubblePlayerCollision(Bubble* bubble, Player* player) {
 }
 
 
-
-// Draw Player 
-
-void drawPlayer(){
-
-    int i = 0, j = 0;
-
-    for (int k = 0; k < 22 * 2 * 30 - 1; k += 2) {
-
-
-        int red = ((data[k + 1] & 0xF8) >> 3) << 11;
-        int green = (((data[k] & 0xE0) >> 5)) | ((data[k + 1] & 0x7) << 3);
-
-        int blue = (data[k] & 0x1f);
-
-        short int p = red | ((green << 5) | blue);
-
-        plot_pixel(0 + i, j, p);
-
-        i += 1;
-        if (i == 22) {
-            i = 0;
-            j += 1;
-        }
-
-    }
-
-
-
-}
 
 
 
