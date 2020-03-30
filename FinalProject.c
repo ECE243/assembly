@@ -13,19 +13,94 @@ typedef struct bubble {
     int xVelocity, yVelocity;
 } Bubble;
 
-/* Later, we will need to use a linked list
-
 // An item in a singly-linked list of Bubble structs
-struct bubbleLinkedListItem {
+typedef struct bubbleLinkedListItem {
     Bubble* bubbleData;
     struct bubbleLinkedListItem* next;
-};
-typedef struct bubbleLinkedListItem* BubbleLinkedList;
-// The list of all displayed bubbles
-BubbleLinkedList* bubbles = NULL;
-*/
-// For now, an array of size 5 is okay for testing
-Bubble bubbles[5];
+} BubbleLinkedListItem;
+
+void addBubbleToList(BubbleLinkedListItem** listHead, Bubble* bubbleToAdd) {
+    if (listHead == NULL) {
+        return;
+    }
+
+    // If the list is empty, insert the bubble at the beginning of the list
+    if (*listHead == NULL) {
+        *listHead = (BubbleLinkedListItem*) malloc(sizeof(BubbleLinkedListItem));
+        (*listHead)->bubbleData = bubbleToAdd;
+        (*listHead)->next = NULL;
+        return;
+    }
+
+    BubbleLinkedListItem* currentListItem = *listHead;
+
+    // Find the last element in the (non-empty) list
+    while (currentListItem->next != NULL) {
+        currentListItem = currentListItem->next;
+    }
+
+    // Add the bubble to the end of the list (after the last element found above)
+    // inside a new BubbleLinkedListItem
+    currentListItem->next = (BubbleLinkedListItem*) malloc(sizeof(BubbleLinkedListItem));
+    currentListItem->next->bubbleData = bubbleToAdd;
+    currentListItem->next->next = NULL;
+}
+
+void removeBubbleAtHead(BubbleLinkedListItem** plistHead) {
+    BubbleLinkedListItem* listHead = *plistHead;
+    if (listHead == NULL) {
+        return;
+    }
+
+    // Remove the head from the list and update the list's head to point to the
+    // next item in the list (which may or may not be NULL)
+    *plistHead = listHead->next;
+
+    // Free the memory allocated for the old list head
+    free(listHead->bubbleData); // Free the bubble data at the old head
+    listHead->bubbleData = NULL;
+    listHead->next = NULL;
+    free(listHead); // Free the old head list item
+}
+
+void removeBubbleAfter(BubbleLinkedListItem* beforeItemToDelete) {
+    // If the specified bubble item doesn't exist, we don't need to do anything
+    if (beforeItemToDelete == NULL) {
+        return;
+    }
+
+    // If there is no item after the specified one, then we don't need to
+    // delete anything
+    BubbleLinkedListItem* itemToDelete = beforeItemToDelete->next;
+    if (itemToDelete == NULL) {
+        return;
+    }
+
+    // Remove the bubble from the list
+    beforeItemToDelete->next = itemToDelete->next;
+
+    // Free the memory allocated for the bubble list item
+    free(itemToDelete->bubbleData); // Free the bubble data itself
+    itemToDelete->bubbleData = NULL;
+    itemToDelete->next = NULL;
+    free(itemToDelete); // Free the list item
+}
+
+void removeBubbleFromList(BubbleLinkedListItem* listHead, Bubble* bubbleToRemove) {
+    if (listHead == NULL) {
+        return;
+    }
+
+    if (listHead->bubbleData == bubbleToRemove) {
+        removeBubbleAtHead(&listHead);
+        return;
+    }
+    while (listHead->next != NULL && listHead->next->bubbleData != bubbleToRemove) {
+        listHead = listHead->next;
+    }
+
+    removeBubbleAfter(listHead);
+}
 
 typedef struct player {
     int x, y;
@@ -40,7 +115,7 @@ void fetchInputs();
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
-void drawScreen();
+void drawScreen(BubbleLinkedListItem* bubbleListHead);
 
 volatile int pixel_buffer_start; // global variable
 void clear_screen();
@@ -54,8 +129,8 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
-void initializeGame();
-void updateGameState();
+BubbleLinkedListItem* initializeGame();
+void updateGameState(BubbleLinkedListItem* bubbleListHead);
 
 void moveBubble(Bubble* bubble);
 void accelerateBubbleDown(Bubble* bubble);
@@ -65,12 +140,13 @@ void bounceBubbleOffScreen(Bubble* bubble);
 int main(void) {
     initializeGraphics();
     initializeInputIO();
-    initializeGame();
+    // The list of all displayed bubbles
+    BubbleLinkedListItem* bubblesListHead = initializeGame();
 
     while (1) {
-        drawScreen();
+        drawScreen(bubblesListHead);
         fetchInputs();
-        updateGameState();
+        updateGameState(bubblesListHead);
     }
 
     return 0;
@@ -95,15 +171,19 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawScreen() {
-    for (int i = 0; i < 5; i++) {
-        circleBres(bubbles + i, 0x07E0);
+void drawScreen(BubbleLinkedListItem* bubbleListHead) {
+    BubbleLinkedListItem* currentListItem = bubbleListHead;
+    while (currentListItem != NULL) {
+        circleBres(currentListItem->bubbleData, 0x07E0);
+        currentListItem = currentListItem->next;
     }
 
     waiting();
 
-    for (int i = 0; i < 5; i++) {
-        circleBres(bubbles + i, 0x0000);
+    currentListItem = bubbleListHead;
+    while (currentListItem != NULL) {
+        circleBres(currentListItem->bubbleData, 0x0000);
+        currentListItem = currentListItem->next;
     }
 }
 
@@ -170,22 +250,30 @@ void waiting() {
 
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
-void initializeGame() {
-    for (int i = 0; i < 5; i++) {
-        bubbles[i].centerX = 50 * i;
-        bubbles[i].centerY = 50;
-        bubbles[i].radius = 20;
+BubbleLinkedListItem* initializeGame() {
+    BubbleLinkedListItem* bubblesListHead = NULL;
 
-        bubbles[i].xVelocity = 1;
-        bubbles[i].yVelocity = -5;
+    for (int i = 0; i < 5; i++) {
+        Bubble* bubbleToAdd = malloc(sizeof(Bubble));
+        bubbleToAdd->centerX = 50 * i;
+        bubbleToAdd->centerY = 50;
+        bubbleToAdd->radius = 20;
+
+        bubbleToAdd->xVelocity = 1;
+        bubbleToAdd->yVelocity = 0;
+
+        addBubbleToList(&bubblesListHead, bubbleToAdd);
     }
+
+    return bubblesListHead;
 }
 
-void updateGameState() {
-    for (int i = 0; i < 5; i++) {
-        moveBubble(bubbles + i);
-        accelerateBubbleDown(bubbles + i);
-        bounceBubbleOffScreen(bubbles + i);
+void updateGameState(BubbleLinkedListItem* bubbleListHead) {
+    while (bubbleListHead != NULL) {
+        moveBubble(bubbleListHead->bubbleData);
+        accelerateBubbleDown(bubbleListHead->bubbleData);
+        bounceBubbleOffScreen(bubbleListHead->bubbleData);
+        bubbleListHead = bubbleListHead->next;
     }
 }
 
