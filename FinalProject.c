@@ -383,13 +383,13 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
     }
 
     *player1 = (Player*) malloc(sizeof(Player));
-    (*player1)->x = SCREEN_SIZE_X / 2 - 10;
+    (*player1)->x = SCREEN_SIZE_X / 3 - 10;
     (*player1)->y = SCREEN_SIZE_Y - 20;
     (*player1)->sizeX = 20;
     (*player1)->sizeY = 40;
 
     *player2 = (Player*) malloc(sizeof(Player));
-    (*player2)->x = SCREEN_SIZE_X / 2 - 10;
+    (*player2)->x = 2 * SCREEN_SIZE_X / 3 - 10;
     (*player2)->y = SCREEN_SIZE_Y - 20;
     (*player2)->sizeX = 20;
     (*player2)->sizeY = 40;
