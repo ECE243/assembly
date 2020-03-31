@@ -1,7 +1,15 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-int playerArray[] =
+#define SCREEN_SIZE_X 320
+#define SCREEN_SIZE_Y 240
+
+#define GRAVITATIONAL_CONSTANT 1
+
+#define PLAYER_SIZE_X 22
+#define PLAYER_SIZE_Y 30
+
+const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x93, 0x05, 0x29, 0xa7, 0x62, 0x07, 0x8c, 0x67, 0x94,
          0xc4, 0x62, 0xa2, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -75,12 +83,7 @@ int playerArray[] =
          0x00, 0x00, 0x00, 0x00, 0xe6, 0x10, 0x28, 0x11, 0x6a, 0x19, 0x6a, 0x19, 0x6b, 0x4a, 0xea, 0x39, 0xe6, 0x10,
          0xc9, 0x31, 0x6b, 0x4a, 0x49, 0x52, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x19, 0xff, 0xff, 0x00, 0x10,
-         0xa5, 0x08, 0x24, 0x00, 0x45, 0x00,};
-
-#define SCREEN_SIZE_X 320
-#define SCREEN_SIZE_Y 240
-
-#define GRAVITATIONAL_CONSTANT 1
+         0xa5, 0x08, 0x24, 0x00, 0x45, 0x00};
 
 // Various data defining the state of a bubble that is bouncing across the screen
 typedef struct bubble {
@@ -191,15 +194,17 @@ void fetchInputs();
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
-void drawScreen(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
-volatile int pixel_buffer_start; // global variable
+void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2);
 void clear_screen();
-void waiting();
-void draw_line(int x0, int y0, int x1, int y1, short int color);
-void drawPlayerStruct(Player* player);
-void plot_pixel(int x, int y, short int line_color);
-void circleBres(Bubble* bubble, short int color);
 
+void waiting();
+
+void plot_pixel(int x, int y, short int line_color);
+void drawLine(int x0, int y0, int x1, int y1, short int color);
+void drawPlayer(const Player* player);
+void drawBubble(const Bubble* bubble, short int color);
+
+volatile int pixel_buffer_start; // global variable
 volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 
 //-----------Game Logic Function Declarations-----------
@@ -255,10 +260,50 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawPlayerStruct(Player* player) {
+void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2) {
+    const BubbleLinkedListItem* currentListItem = bubbleListHead;
+    while (currentListItem != NULL) {
+        drawBubble(currentListItem->bubbleData, 0x07E0);
+        currentListItem = currentListItem->next;
+    }
+
+    waiting();
+
+    currentListItem = bubbleListHead;
+    while (currentListItem != NULL) {
+        drawBubble(currentListItem->bubbleData, 0x0000);
+        currentListItem = currentListItem->next;
+    }
+
+    drawPlayer(player1);
+    drawPlayer(player2);
+}
+
+void clear_screen() {
+    for (int x = 0; x < 320; x++) {
+        for (int y = 0; y < 240; y++) {
+            plot_pixel(x, y, 0x0);
+        }
+    }
+}
+
+void waiting() {
+    volatile int* status = pixel_ctrl_ptr + 3;
+
+    *pixel_ctrl_ptr = 1;
+
+    while ((*status & 0x01) != 0) {
+        status = status;
+    }
+}
+
+void plot_pixel(int x, int y, short int line_color) {
+    *(short int*) (pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
+}
+
+void drawPlayer(const Player* player) {
     int x = player->x;
     int y = player->y;
-
 
     for (int array = 0; array < player->sizeX * 2 * player->sizeY - 1; array += 2) {
         int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
@@ -280,37 +325,12 @@ void drawPlayerStruct(Player* player) {
 
 }
 
-void drawScreen(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
-    BubbleLinkedListItem* currentListItem = bubbleListHead;
-    while (currentListItem != NULL) {
-        circleBres(currentListItem->bubbleData, 0x07E0);
-        currentListItem = currentListItem->next;
-    }
-
-    waiting();
-
-    currentListItem = bubbleListHead;
-    while (currentListItem != NULL) {
-        circleBres(currentListItem->bubbleData, 0x0000);
-        currentListItem = currentListItem->next;
-    }
-
-    drawPlayerStruct(player1);
-    drawPlayerStruct(player2);
-}
-
-void clear_screen() {
-    for (int x = 0; x < 320; x++) {
-        for (int y = 0; y < 240; y++) {
-            plot_pixel(x, y, 0x0);
-        }
-    }
-}
-
-void circleBres(Bubble* bubble, short int color) {
+// Uses Bresenham's Algorithm for drawing a circle (src: geeksforgeeks.com)
+void drawBubble(const Bubble* bubble, short int color) {
     short int colour = color;
     int x = 0, y = bubble->radius;
     int d = 3 - 2 * bubble->radius;
+
     plot_pixel(bubble->centerX + x, bubble->centerY + y, colour);
     plot_pixel(bubble->centerX - x, bubble->centerY + y, colour);
     plot_pixel(bubble->centerX + x, bubble->centerY - y, colour);
@@ -319,6 +339,7 @@ void circleBres(Bubble* bubble, short int color) {
     plot_pixel(bubble->centerX - y, bubble->centerY + x, colour);
     plot_pixel(bubble->centerX + y, bubble->centerY - x, colour);
     plot_pixel(bubble->centerX - y, bubble->centerY - x, colour);
+
     while (y >= x) {
         // for each pixel we will 
         // draw all eight pixels 
@@ -345,20 +366,6 @@ void circleBres(Bubble* bubble, short int color) {
     }
 }
 
-void plot_pixel(int x, int y, short int line_color) {
-    *(short int*) (pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
-}
-
-void waiting() {
-    volatile int* status = pixel_ctrl_ptr + 3;
-
-    *pixel_ctrl_ptr = 1;
-
-    while ((*status & 0x01) != 0) {
-        status = status;
-    }
-}
-
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2) {
@@ -377,16 +384,16 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
     }
 
     *player1 = (Player*) malloc(sizeof(Player));
-    (*player1)->x = SCREEN_SIZE_X / 3 - 10;
-    (*player1)->y = SCREEN_SIZE_Y - 20;
-    (*player1)->sizeX = 22;
-    (*player1)->sizeY = 30;
+    (*player1)->x = (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2);
+    (*player1)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
+    (*player1)->sizeX = PLAYER_SIZE_X;
+    (*player1)->sizeY = PLAYER_SIZE_Y;
 
     *player2 = (Player*) malloc(sizeof(Player));
-    (*player2)->x = 2 * SCREEN_SIZE_X / 3 - 10;
-    (*player2)->y = SCREEN_SIZE_Y - 20;
-    (*player2)->sizeX = 22;
-    (*player2)->sizeY = 30;
+    (*player2)->x = 2 * (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2);
+    (*player2)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
+    (*player2)->sizeX = PLAYER_SIZE_X;
+    (*player2)->sizeY = PLAYER_SIZE_Y;
 }
 
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
