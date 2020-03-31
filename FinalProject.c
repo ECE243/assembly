@@ -195,12 +195,12 @@ void fetchInputs();
 //------------------------------------------------------
 void initializeGraphics();
 void drawScreen(BubbleLinkedListItem* bubbleListHead);
-
+void drawPlayerStruct(Player player1);
 volatile int pixel_buffer_start; // global variable
 void clear_screen();
 void waiting();
 void draw_line(int x0, int y0, int x1, int y1, short int color);
-void drawPlayerStruct(Player player1, int x);
+void drawPlayerStruct(Player player1);
 void plot_pixel(int x, int y, short int line_color);
 void circleBres(Bubble* bubble, short int color);
 
@@ -228,7 +228,7 @@ int main(void) {
     while (!gameOver) {
         drawScreen(bubblesListHead);
         fetchInputs();
-        drawPlayerStruct(player1,149);
+        drawPlayerStruct(player1);
         updateGameState(bubblesListHead);
     }
 
@@ -255,8 +255,9 @@ void initializeGraphics() {
     pixel_buffer_start = *pixel_ctrl_ptr;
     clear_screen();
 }
-void drawPlayerStruct(Player player1, int x) {
-
+void drawPlayerStruct(Player player1) {
+    int x = SCREEN_SIZE_X / 2 - 11;
+    int y = SCREEN_SIZE_Y - 30;
     player1.x = SCREEN_SIZE_X / 2 - 11;
     player1.y = SCREEN_SIZE_Y - 30;
     player1.sizeX = 22;
@@ -272,12 +273,12 @@ void drawPlayerStruct(Player player1, int x) {
 
         short int playerColor = red | ((green << 5) | blue);
 
-        plot_pixel(player1.x, player1.y, playerColor);
+        plot_pixel(x, y, playerColor);
 
-        player1.x += 1;
-        if (player1.x ==  x + player1.sizeX) {
-            player1.x =  x;
-            player1.y += 1;
+        x += 1;
+        if (x ==  player1.x + player1.sizeX) {
+            x = player1.x;
+            y += 1;
         }
 
     }
