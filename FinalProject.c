@@ -211,8 +211,8 @@ void initializeGraphics() {
 }
 void drawPlayer(){
 
-    int xCordinatePlayer = 0;
-    int yCordinatePlayer = 0;
+    int xCordinatePlayer = 149;
+    int yCordinatePlayer = 210;
 
     for (int array = 0; array < 1319; array += 2) {
 
@@ -227,8 +227,8 @@ void drawPlayer(){
         plot_pixel(xCordinatePlayer, yCordinatePlayer, playerColor);
 
         xCordinatePlayer += 1;
-        if (xCordinatePlayer == 22) {
-            xCordinatePlayer = 0;
+        if (xCordinatePlayer == 171) {
+            xCordinatePlayer = 149;
             yCordinatePlayer += 1;
         }
 
