@@ -256,12 +256,9 @@ void initializeGraphics() {
 }
 
 void drawPlayerStruct(Player* player) {
-    int x = SCREEN_SIZE_X / 2 - 11;
-    int y = SCREEN_SIZE_Y - 30;
-    player->x = SCREEN_SIZE_X / 2 - 11;
-    player->y = SCREEN_SIZE_Y - 30;
-    player->sizeX = 22;
-    player->sizeY = 30;
+    int x = player->x;
+    int y = player->y;
+
 
     for (int array = 0; array < player->sizeX * 2 * player->sizeY - 1; array += 2) {
         int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
@@ -382,14 +379,14 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
     *player1 = (Player*) malloc(sizeof(Player));
     (*player1)->x = SCREEN_SIZE_X / 3 - 10;
     (*player1)->y = SCREEN_SIZE_Y - 20;
-    (*player1)->sizeX = 20;
-    (*player1)->sizeY = 40;
+    (*player1)->sizeX = 22;
+    (*player1)->sizeY = 30;
 
     *player2 = (Player*) malloc(sizeof(Player));
     (*player2)->x = 2 * SCREEN_SIZE_X / 3 - 10;
     (*player2)->y = SCREEN_SIZE_Y - 20;
-    (*player2)->sizeX = 20;
-    (*player2)->sizeY = 40;
+    (*player2)->sizeX = 22;
+    (*player2)->sizeY = 30;
 }
 
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
