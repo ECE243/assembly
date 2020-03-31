@@ -183,9 +183,6 @@ typedef struct player {
     int sizeX, sizeY;
 } Player;
 
-// TODO: Temporary.. will add a linked list for this shortly
-Player player1;
-
 //----------User Input Function Declarations------------
 //------------------------------------------------------
 void initializeInputIO();
@@ -194,23 +191,21 @@ void fetchInputs();
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
-void drawScreen(BubbleLinkedListItem* bubbleListHead);
-void drawPlayerStruct(Player player1);
+void drawScreen(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
 volatile int pixel_buffer_start; // global variable
 void clear_screen();
 void waiting();
 void draw_line(int x0, int y0, int x1, int y1, short int color);
-void drawPlayerStruct(Player player1);
+void drawPlayerStruct(Player* player);
 void plot_pixel(int x, int y, short int line_color);
 void circleBres(Bubble* bubble, short int color);
 
 volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 
-
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
-BubbleLinkedListItem* initializeGame();
-void updateGameState(BubbleLinkedListItem* bubbleListHead);
+void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2);
+void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
 
 void moveBubble(Bubble* bubble);
 void accelerateBubbleDown(Bubble* bubble);
@@ -222,14 +217,19 @@ bool gameOver = false;
 int main(void) {
     initializeGraphics();
     initializeInputIO();
-    // The list of all displayed bubbles
-    BubbleLinkedListItem* bubblesListHead = initializeGame();
+
+    // The list of all the bouncing bubbles
+    BubbleLinkedListItem* bubblesListHead;
+    // Pointers to the player objects for the (up to) 2 players
+    Player* player1;
+    Player* player2;
+
+    initializeGame(&bubblesListHead, &player1, &player2);
 
     while (!gameOver) {
-        drawScreen(bubblesListHead);
+        drawScreen(bubblesListHead, player1, player2);
         fetchInputs();
-        drawPlayerStruct(player1);
-        updateGameState(bubblesListHead);
+        updateGameState(bubblesListHead, player1, player2);
     }
 
     return 0;
@@ -238,15 +238,14 @@ int main(void) {
 //----------User Input Function Definitions-------------
 //------------------------------------------------------
 void initializeInputIO() {
-    volatile int* keys = 0xFF200050;
-    volatile int* LEDRpointer = 0xFF200000;
-    volatile int* switches = 0xFF200040;
+    volatile int* keys = (int*) 0xFF200050;
+    volatile int* LEDRpointer = (int*) 0xFF200000;
+    volatile int* switches = (int*) 0xFF200040;
 }
 
 void fetchInputs() {
 
 }
-
 
 //----------Graphics Function Definitions---------------
 //------------------------------------------------------
@@ -255,17 +254,16 @@ void initializeGraphics() {
     pixel_buffer_start = *pixel_ctrl_ptr;
     clear_screen();
 }
-void drawPlayerStruct(Player player1) {
+
+void drawPlayerStruct(Player* player) {
     int x = SCREEN_SIZE_X / 2 - 11;
     int y = SCREEN_SIZE_Y - 30;
-    player1.x = SCREEN_SIZE_X / 2 - 11;
-    player1.y = SCREEN_SIZE_Y - 30;
-    player1.sizeX = 22;
-    player1.sizeY = 30;
+    player->x = SCREEN_SIZE_X / 2 - 11;
+    player->y = SCREEN_SIZE_Y - 30;
+    player->sizeX = 22;
+    player->sizeY = 30;
 
-    for (int array = 0; array < player1.sizeX * 2 * player1.sizeY - 1; array += 2) {
-
-
+    for (int array = 0; array < player->sizeX * 2 * player->sizeY - 1; array += 2) {
         int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
         int green = (((playerArray[array] & 0xE0) >> 5)) | ((playerArray[array + 1] & 0x7) << 3);
 
@@ -276,8 +274,8 @@ void drawPlayerStruct(Player player1) {
         plot_pixel(x, y, playerColor);
 
         x += 1;
-        if (x ==  player1.x + player1.sizeX) {
-            x = player1.x;
+        if (x == player->x + player->sizeX) {
+            x = player->x;
             y += 1;
         }
 
@@ -285,8 +283,7 @@ void drawPlayerStruct(Player player1) {
 
 }
 
-
-void drawScreen(BubbleLinkedListItem* bubbleListHead) {
+void drawScreen(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
     BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
         circleBres(currentListItem->bubbleData, 0x07E0);
@@ -300,6 +297,9 @@ void drawScreen(BubbleLinkedListItem* bubbleListHead) {
         circleBres(currentListItem->bubbleData, 0x0000);
         currentListItem = currentListItem->next;
     }
+
+    drawPlayerStruct(player1);
+    drawPlayerStruct(player2);
 }
 
 void clear_screen() {
@@ -348,7 +348,6 @@ void circleBres(Bubble* bubble, short int color) {
     }
 }
 
-
 void plot_pixel(int x, int y, short int line_color) {
     *(short int*) (pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
 }
@@ -365,11 +364,11 @@ void waiting() {
 
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
-BubbleLinkedListItem* initializeGame() {
-    BubbleLinkedListItem* bubblesListHead = NULL;
+void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2) {
+    *pBubblesListHead = NULL;
 
     for (int i = 0; i < 1; i++) {
-        Bubble* bubbleToAdd = malloc(sizeof(Bubble));
+        Bubble* bubbleToAdd = (Bubble*) malloc(sizeof(Bubble));
         bubbleToAdd->centerX = 50 * (i + 1);
         bubbleToAdd->centerY = 50;
         bubbleToAdd->radius = 20;
@@ -377,23 +376,29 @@ BubbleLinkedListItem* initializeGame() {
         bubbleToAdd->xVelocity = 1;
         bubbleToAdd->yVelocity = 0;
 
-        addBubbleToList(&bubblesListHead, bubbleToAdd);
+        addBubbleToList(pBubblesListHead, bubbleToAdd);
     }
 
-    player1.x = SCREEN_SIZE_X / 2 - 10;
-    player1.y = SCREEN_SIZE_Y - 20;
-    player1.sizeX = 20;
-    player1.sizeY = 40;
+    *player1 = (Player*) malloc(sizeof(Player));
+    (*player1)->x = SCREEN_SIZE_X / 3 - 10;
+    (*player1)->y = SCREEN_SIZE_Y - 20;
+    (*player1)->sizeX = 20;
+    (*player1)->sizeY = 40;
 
-    return bubblesListHead;
+    *player2 = (Player*) malloc(sizeof(Player));
+    (*player2)->x = 2 * SCREEN_SIZE_X / 3 - 10;
+    (*player2)->y = SCREEN_SIZE_Y - 20;
+    (*player2)->sizeX = 20;
+    (*player2)->sizeY = 40;
 }
 
-void updateGameState(BubbleLinkedListItem* bubbleListHead) {
+void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
     while (bubbleListHead != NULL) {
         moveBubble(bubbleListHead->bubbleData);
         bounceBubbleOffScreen(bubbleListHead->bubbleData);
 
-        if (checkBubblePlayerCollision(bubbleListHead->bubbleData, &player1)) {
+        if (checkBubblePlayerCollision(bubbleListHead->bubbleData, player1) ||
+            checkBubblePlayerCollision(bubbleListHead->bubbleData, player2)) {
             gameOver = true;
             break;
         }
