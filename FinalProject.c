@@ -8,6 +8,7 @@
 
 #define PLAYER_SIZE_X 22
 #define PLAYER_SIZE_Y 30
+#define PLAYER_MOVE_SPEED 3
 
 const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -184,12 +185,20 @@ void removeBubbleFromList(BubbleLinkedListItem* listHead, Bubble* bubbleToRemove
 typedef struct player {
     int x, y;
     int sizeX, sizeY;
+
+    // Flags that represent the "intention" of the user controlling
+    // the player (e.g. did they press the move left button?)
+    bool requestMoveLeft, requestMoveRight, requestShoot;
 } Player;
 
 //----------User Input Function Declarations------------
 //------------------------------------------------------
 void initializeInputIO();
-void fetchInputs();
+void fetchInputs(Player* player1, Player* player2);
+
+const volatile int* LEDR_PTR = (int*) 0xFF200000;
+const volatile int* SW_PTR = (int*) 0xFF200040;
+const volatile int* KEY_PTR = (int*) 0xFF200050;
 
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
@@ -215,6 +224,9 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Play
 void moveBubble(Bubble* bubble);
 void accelerateBubbleDown(Bubble* bubble);
 void bounceBubbleOffScreen(Bubble* bubble);
+
+void movePlayer(Player* player);
+
 bool checkBubblePlayerCollision(Bubble* bubble, Player* player);
 
 bool gameOver = false;
@@ -233,7 +245,7 @@ int main(void) {
 
     while (!gameOver) {
         drawScreen(bubblesListHead, player1, player2);
-        fetchInputs();
+        fetchInputs(player1, player2);
         updateGameState(bubblesListHead, player1, player2);
     }
 
@@ -243,13 +255,11 @@ int main(void) {
 //----------User Input Function Definitions-------------
 //------------------------------------------------------
 void initializeInputIO() {
-    volatile int* keys = (int*) 0xFF200050;
-    volatile int* LEDRpointer = (int*) 0xFF200000;
-    volatile int* switches = (int*) 0xFF200040;
 }
 
-void fetchInputs() {
-
+void fetchInputs(Player* player1, Player* player2) {
+    // Update the 'requestMoveLeft', 'requestMoveRight', and 'requestShoot' flags
+    // of each player depending on what the user presses
 }
 
 //----------Graphics Function Definitions---------------
@@ -388,12 +398,18 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
     (*player1)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
     (*player1)->sizeX = PLAYER_SIZE_X;
     (*player1)->sizeY = PLAYER_SIZE_Y;
+    (*player1)->requestMoveLeft = false;
+    (*player1)->requestMoveRight = true;
+    (*player1)->requestShoot = false;
 
     *player2 = (Player*) malloc(sizeof(Player));
     (*player2)->x = 2 * (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2);
     (*player2)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
     (*player2)->sizeX = PLAYER_SIZE_X;
     (*player2)->sizeY = PLAYER_SIZE_Y;
+    (*player2)->requestMoveLeft = true;
+    (*player2)->requestMoveRight = false;
+    (*player2)->requestShoot = false;
 }
 
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
@@ -411,6 +427,9 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Play
 
         bubbleListHead = bubbleListHead->next;
     }
+
+    movePlayer(player1);
+    movePlayer(player2);
 }
 
 void moveBubble(Bubble* bubble) {
@@ -455,6 +474,25 @@ void bounceBubbleOffScreen(Bubble* bubble) {
     if (bubble->centerY + bubble->radius >= SCREEN_SIZE_Y) {
         bubble->centerY = SCREEN_SIZE_Y - bubble->radius;
         bubble->yVelocity *= -1;
+    }
+}
+
+void movePlayer(Player* player) {
+    if (player->requestMoveLeft) {
+        player->x -= PLAYER_MOVE_SPEED;
+
+        // Constrain the player from moving off the screen (left edge)
+        if (player->x < 0) {
+            player->x = 0;
+        }
+    }
+    else if (player->requestMoveRight) {
+        player->x += PLAYER_MOVE_SPEED;
+
+        // Constrain the player from moving off the screen (right edge)
+        if (player->x + player->sizeX > SCREEN_SIZE_X) {
+            player->x = SCREEN_SIZE_X - player->sizeX;
+        }
     }
 }
 
