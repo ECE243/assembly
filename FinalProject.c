@@ -200,6 +200,7 @@ volatile int pixel_buffer_start; // global variable
 void clear_screen();
 void waiting();
 void draw_line(int x0, int y0, int x1, int y1, short int color);
+void drawPlayerStruct(Player player1, int x);
 void plot_pixel(int x, int y, short int line_color);
 void circleBres(Bubble* bubble, short int color);
 
@@ -227,7 +228,7 @@ int main(void) {
     while (!gameOver) {
         drawScreen(bubblesListHead);
         fetchInputs();
-        drawPlayer(Player playerDrawing, 149,210);
+        drawPlayerStruct(player1,149);
         updateGameState(bubblesListHead);
     }
 
@@ -254,40 +255,14 @@ void initializeGraphics() {
     pixel_buffer_start = *pixel_ctrl_ptr;
     clear_screen();
 }
+void drawPlayerStruct(Player player1, int x) {
 
-void drawPlayer(Player playerDrawing, int xCordinatePlayer,int yCordinatePlayer) {// initialise x to 149 y to 210
+    player1.x = SCREEN_SIZE_X / 2 - 11;
+    player1.y = SCREEN_SIZE_Y - 30;
+    player1.sizeX = 22;
+    player1.sizeY = 30;
 
-    playerDrawing.x =  xCordinatePlayer;
-    playerDrawing.y =  yCordinatePlayer;
-
-    for (int array = 0; array < playerDrawing.sizeX * 2 * playerDrawing.sizeY - 1;; array += 2) {
-
-
-        int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
-        int green = (((playerArray[array] & 0xE0) >> 5)) | ((playerArray[array + 1] & 0x7) << 3);
-
-        int blue = (playerArray[array] & 0x1f);
-
-        short int playerColor = red | ((green << 5) | blue);
-
-        plot_pixel(xCordinatePlayer, yCordinatePlayer, playerColor);
-
-        playerDrawing.x += 1;
-        if (playerDrawing.x == playerDrawing.x + playerDrawing.sizeX ) {
-            playerDrawing.x = playerDrawing.x ;
-            playerDrawing.y += 1;
-        }
-
-    }
-
-}
-
-/*void drawPlayer(Player* playerDrawing,int xCordinatePlayer,int yCordinatePlayer) {
-
-    int xCordinatePlayer = 149;
-    int yCordinatePlayer = 210;
-
-    for (int array = 0; array < 1319; array += 2) {
+    for (int array = 0; array < player1.sizeX * 2 * player1.sizeY - 1; array += 2) {
 
 
         int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
@@ -297,18 +272,19 @@ void drawPlayer(Player playerDrawing, int xCordinatePlayer,int yCordinatePlayer)
 
         short int playerColor = red | ((green << 5) | blue);
 
-        plot_pixel(xCordinatePlayer, yCordinatePlayer, playerColor);
+        plot_pixel(player1.x, player1.y, playerColor);
 
-        xCordinatePlayer += 1;
-        if (xCordinatePlayer == 171) {
-            xCordinatePlayer = 149;
-            yCordinatePlayer += 1;
+        player1.x += 1;
+        if (player1.x ==  x + player1.sizeX) {
+            player1.x =  x;
+            player1.y += 1;
         }
 
     }
 
 }
-*/
+
+
 void drawScreen(BubbleLinkedListItem* bubbleListHead) {
     BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
