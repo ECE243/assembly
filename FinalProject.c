@@ -592,24 +592,30 @@ void bounceBubbleOffScreen(Bubble* bubble) {
     // Left edge
     if (bubble->centerX - bubble->radius <= 0) {
         bubble->centerX = bubble->radius;
+
         bubble->xVelocity *= -1;
     }
 
     // Right edge
     if (bubble->centerX + bubble->radius >= SCREEN_SIZE_X) {
         bubble->centerX = SCREEN_SIZE_X - bubble->radius;
+
         bubble->xVelocity *= -1;
     }
 
     // Top edge
     if (bubble->centerY - bubble->radius <= 0) {
         bubble->centerY = bubble->radius;
+
+        accelerateBubbleDown(bubble);
         bubble->yVelocity *= -1;
     }
 
     // Bottom edge
     if (bubble->centerY + bubble->radius >= SCREEN_SIZE_Y) {
         bubble->centerY = SCREEN_SIZE_Y - bubble->radius;
+
+        accelerateBubbleDown(bubble);
         bubble->yVelocity *= -1;
     }
 }
