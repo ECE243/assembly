@@ -91,16 +91,14 @@ const int playerArray[] =
          0xa5, 0x08, 0x24, 0x00, 0x45, 0x00};
 
 
-const int arrowArray[] = {  0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00,
-  0x60, 0x10, 0xb4, 0xe6, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff, 0xc5, 0x6a, 
-  0xe2, 0x49, 0xfd, 0xff, 0xff, 0xff, 0xdf, 0xff, 0xff, 0xff, 0x8f, 0xc5, 
-  0x81, 0x41, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0c, 0xb5, 
-  0x00, 0x41, 0xaf, 0xee, 0xff, 0xff, 0xff, 0xff, 0xfb, 0xff, 0xc3, 0x72, 
-  0x00, 0x00, 0x20, 0x62, 0x52, 0xff, 0xfa, 0xff, 0xc5, 0xc4, 0x00, 0x08, 
-  0x00, 0x00, 0x00, 0x00, 0xa0, 0x9b, 0x43, 0xee, 0x40, 0x18, 0x00, 0x00, 
-  0x20, 0x08, 0x00, 0x00, 0x01, 0x73, 0x81, 0xbc, 0x00, 0x00, 0x20, 0x00, 
-  0x00, 0x00, 0x00, 0x00, 0x60, 0x41, 0x40, 0x6a, 0x00, 0x00, 0x00, 0x00, 
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x60, 0x20, 0x00, 0x00, 0x00, 0x00};
+const int arrowArray[] =
+        {0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00, 0x60, 0x10, 0xb4, 0xe6, 0xff, 0xff,
+         0xff, 0xff, 0xfe, 0xff, 0xc5, 0x6a, 0xe2, 0x49, 0xfd, 0xff, 0xff, 0xff, 0xdf, 0xff, 0xff, 0xff, 0x8f, 0xc5,
+         0x81, 0x41, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0c, 0xb5, 0x00, 0x41, 0xaf, 0xee, 0xff, 0xff,
+         0xff, 0xff, 0xfb, 0xff, 0xc3, 0x72, 0x00, 0x00, 0x20, 0x62, 0x52, 0xff, 0xfa, 0xff, 0xc5, 0xc4, 0x00, 0x08,
+         0x00, 0x00, 0x00, 0x00, 0xa0, 0x9b, 0x43, 0xee, 0x40, 0x18, 0x00, 0x00, 0x20, 0x08, 0x00, 0x00, 0x01, 0x73,
+         0x81, 0xbc, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x41, 0x40, 0x6a, 0x00, 0x00, 0x00, 0x00,
+         0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x60, 0x20, 0x00, 0x00, 0x00, 0x00};
 
 // Various data defining the state of a bubble that is bouncing across the screen
 typedef struct bubble {
@@ -294,42 +292,32 @@ void initializeInputIO() {
 }
 
 void fetchInputs(Player* player1, Player* player2) {
-    { 
+    {
 
 
-      
-      if (*KEY_PTR == 0b100)
-        {
+        if (*KEY_PTR == 0b100) {
             player1->requestMoveLeft = true;
             player2->requestMoveLeft = true;
 
-        }
-      else if (*KEY_PTR == 0b100)
-      {
-          player1->requestShoot = true;
-          player2->requestShoot = true;
-      }
-      else if (*KEY_PTR == 0b1)
-      
-      {
-          player1->requestMoveRight = true;
-          player2->requestMoveRight = true;
-      }
-      else {
+        } else if (*KEY_PTR == 0b100) {
+            player1->requestShoot = true;
+            player2->requestShoot = true;
+        } else if (*KEY_PTR == 0b1) {
+            player1->requestMoveRight = true;
+            player2->requestMoveRight = true;
+        } else {
             player1->requestMoveLeft = false;
-           player2->requestMoveLeft = false;
+            player2->requestMoveLeft = false;
 
-          player1->requestShoot = false;
-          player2->requestShoot = false;
+            player1->requestShoot = false;
+            player2->requestShoot = false;
 
-          player1->requestMoveRight = false;
-          player2->requestMoveRight = false;
+            player1->requestMoveRight = false;
+            player2->requestMoveRight = false;
 
-      }
+        }
 
-
-   
-}
+    }
     // Update the 'requestMoveLeft', 'requestMoveRight', and 'requestShoot' flags
     // of each player depending on what the user presses
 }
@@ -351,6 +339,9 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     drawPlayer(player1, false);
     drawPlayer(player2, false);
 
+    drawArrow(player1->shootingArrow, false);
+    drawArrow(player2->shootingArrow, false);
+
     waiting();
 
     currentListItem = bubbleListHead;
@@ -361,6 +352,8 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     drawPlayer(player1, true);
     drawPlayer(player2, true);
 
+    drawArrow(player1->shootingArrow, true);
+    drawArrow(player2->shootingArrow, true);
 }
 
 void clear_screen() {
@@ -416,33 +409,33 @@ void drawPlayer(const Player* player, bool erase) {
 
 
 void drawArrow(const Arrow* arrow, bool erase) {
-   int x = arrow->x;
-   int y = arrow->y;
-   short int arrowColor;
- 
-   for (int array = 0; array < arrow->sizeX * 2 * arrow->sizeY - 1; array += 2) {
-       int red = ((arrowArray[array + 1] & 0xF8) >> 3) << 11;
-       int green = (((arrowArray[array] & 0xE0) >> 5)) | ((arrowArray[array + 1] & 0x7) << 3);
- 
-       int blue = (arrowArray[array] & 0x1f);
-       if (erase == true)
-       arrowColor = 0x0;
-       else{
-           arrowColor = red | ((green << 5) | blue);}
-      
- 
-       plot_pixel(x, y, arrowColor);
- 
-       x += 1;
-       if (x == arrow->x + arrow->sizeX) {
-           x = arrow->x;
-           y += 1;
-       }
- 
-   }
- 
-}
+    int x = arrow->x;
+    int y = arrow->y;
+    short int arrowColor;
 
+    for (int array = 0; array < arrow->sizeX * 2 * arrow->sizeY - 1; array += 2) {
+        int red = ((arrowArray[array + 1] & 0xF8) >> 3) << 11;
+        int green = (((arrowArray[array] & 0xE0) >> 5)) | ((arrowArray[array + 1] & 0x7) << 3);
+
+        int blue = (arrowArray[array] & 0x1f);
+        if (erase == true) {
+            arrowColor = 0x0;
+        } else {
+            arrowColor = red | ((green << 5) | blue);
+        }
+
+
+        plot_pixel(x, y, arrowColor);
+
+        x += 1;
+        if (x == arrow->x + arrow->sizeX) {
+            x = arrow->x;
+            y += 1;
+        }
+
+    }
+
+}
 
 
 // Uses Bresenham's Algorithm for drawing a circle (src: geeksforgeeks.com)
