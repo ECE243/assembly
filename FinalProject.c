@@ -200,6 +200,8 @@ const volatile int* LEDR_PTR = (int*) 0xFF200000;
 const volatile int* SW_PTR = (int*) 0xFF200040;
 const volatile int* KEY_PTR = (int*) 0xFF200050;
 
+
+
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
@@ -258,6 +260,31 @@ void initializeInputIO() {
 }
 
 void fetchInputs(Player* player1, Player* player2) {
+    { 
+
+
+      
+      if (*KEY_PTR == 0b100)
+        {
+            player1->requestMoveLeft = true;
+            player2->requestMoveLeft = true;
+
+        }
+      if (*KEY_PTR == 0b100)
+      {
+          player1->requestShoot = true;
+          player2->requestShoot = true;
+      }
+      if (*KEY_PTR == 0b1)
+      
+      {
+          player1->requestMoveRight = true;
+          player2->requestMoveRight = true;
+      }
+
+
+   
+}
     // Update the 'requestMoveLeft', 'requestMoveRight', and 'requestShoot' flags
     // of each player depending on what the user presses
 }
@@ -407,7 +434,7 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
     (*player1)->sizeX = PLAYER_SIZE_X;
     (*player1)->sizeY = PLAYER_SIZE_Y;
     (*player1)->requestMoveLeft = false;
-    (*player1)->requestMoveRight = true;
+    (*player1)->requestMoveRight = false;
     (*player1)->requestShoot = false;
 
     *player2 = (Player*) malloc(sizeof(Player));
@@ -415,7 +442,7 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
     (*player2)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
     (*player2)->sizeX = PLAYER_SIZE_X;
     (*player2)->sizeY = PLAYER_SIZE_Y;
-    (*player2)->requestMoveLeft = true;
+    (*player2)->requestMoveLeft = false;
     (*player2)->requestMoveRight = false;
     (*player2)->requestShoot = false;
 }
