@@ -311,17 +311,21 @@ void plot_pixel(int x, int y, short int line_color) {
     *(short int*) (pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
 }
 
-void drawPlayer(const Player* player) {
+void drawPlayer(const Player* player, bool erase) {
     int x = player->x;
     int y = player->y;
+    short int playerColor;
 
     for (int array = 0; array < player->sizeX * 2 * player->sizeY - 1; array += 2) {
         int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
         int green = (((playerArray[array] & 0xE0) >> 5)) | ((playerArray[array + 1] & 0x7) << 3);
 
         int blue = (playerArray[array] & 0x1f);
-
-        short int playerColor = red | ((green << 5) | blue);
+        if (erase == true)
+        playerColor = 0x0;
+        else{
+            playerColor = red | ((green << 5) | blue);}
+        
 
         plot_pixel(x, y, playerColor);
 
