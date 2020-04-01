@@ -6,8 +6,8 @@
 
 #define GRAVITATIONAL_CONSTANT 1
 
-#define ARROW_SIZE_X
-#define ARROW_SIZE_Y
+#define ARROW_SIZE_X 10
+#define ARROW_SIZE_Y 10
 #define ARROW_MOVE_SPEED 7
 
 #define PLAYER_SIZE_X 22
@@ -91,7 +91,7 @@ const int playerArray[] =
          0xa5, 0x08, 0x24, 0x00, 0x45, 0x00};
 
 
-const int arrowArray[] = {  0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00, 
+const int arrowArray[] = {  0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00,
   0x60, 0x10, 0xb4, 0xe6, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff, 0xc5, 0x6a, 
   0xe2, 0x49, 0xfd, 0xff, 0xff, 0xff, 0xdf, 0xff, 0xff, 0xff, 0x8f, 0xc5, 
   0x81, 0x41, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0c, 0xb5, 
@@ -227,11 +227,10 @@ const volatile int* SW_PTR = (int*) 0xFF200040;
 const volatile int* KEY_PTR = (int*) 0xFF200050;
 
 
-
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
-void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2, const Arrow* arrowAttack);
+void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2);
 void clear_screen();
 
 void waiting();
@@ -250,11 +249,19 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2);
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
 
+void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead);
+void initializePlayer(Player** player, int x, int y);
+void initializePlayerShootingArrow(Player* player);
+
 void moveBubble(Bubble* bubble);
 void accelerateBubbleDown(Bubble* bubble);
 void bounceBubbleOffScreen(Bubble* bubble);
 
+void moveArrow(Arrow* arrow);
+void destroyPlayerArrowAtTop(Player* player);
+
 void movePlayer(Player* player);
+void checkAndServicePlayerShootRequest(Player* player);
 
 bool checkBubblePlayerCollision(Bubble* bubble, Player* player);
 
@@ -269,12 +276,11 @@ int main(void) {
     // Pointers to the player objects for the (up to) 2 players
     Player* player1;
     Player* player2;
-    Arrow*  energyBeam;
 
     initializeGame(&bubblesListHead, &player1, &player2);
 
     while (!gameOver) {
-        drawScreen(bubblesListHead, player1, player2,energyBeam);
+        drawScreen(bubblesListHead, player1, player2);
         fetchInputs(player1, player2);
         updateGameState(bubblesListHead, player1, player2);
     }
@@ -336,15 +342,14 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2, const Arrow* arrowAttack) {
+void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2) {
     const BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
         drawBubble(currentListItem->bubbleData, 0x07E0);
         currentListItem = currentListItem->next;
     }
-	drawPlayer(player1,false);
-    drawPlayer(player2,false);
-    drawArrow(arrowAttack, false);
+    drawPlayer(player1, false);
+    drawPlayer(player2, false);
 
     waiting();
 
@@ -353,8 +358,8 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
         drawBubble(currentListItem->bubbleData, 0x0000);
         currentListItem = currentListItem->next;
     }
-	drawPlayer(player1,true);
-    drawPlayer(player2,true);	
+    drawPlayer(player1, true);
+    drawPlayer(player2, true);
 
 }
 
@@ -390,11 +395,12 @@ void drawPlayer(const Player* player, bool erase) {
         int green = (((playerArray[array] & 0xE0) >> 5)) | ((playerArray[array + 1] & 0x7) << 3);
 
         int blue = (playerArray[array] & 0x1f);
-        if (erase == true)
-        playerColor = 0x0;
-        else{
-            playerColor = red | ((green << 5) | blue);}
-        
+        if (erase == true) {
+            playerColor = 0x0;
+        } else {
+            playerColor = red | ((green << 5) | blue);
+        }
+
 
         plot_pixel(x, y, playerColor);
 
@@ -483,6 +489,13 @@ void drawBubble(const Bubble* bubble, short int color) {
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2) {
+    initializeBubblesList(pBubblesListHead);
+
+    initializePlayer(player1, (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER_SIZE_Y);
+    initializePlayer(player2, 2 * (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER_SIZE_Y);
+}
+
+void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead) {
     *pBubblesListHead = NULL;
 
     for (int i = 0; i < 1; i++) {
@@ -496,24 +509,31 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
 
         addBubbleToList(pBubblesListHead, bubbleToAdd);
     }
+}
 
-    *player1 = (Player*) malloc(sizeof(Player));
-    (*player1)->x = (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2);
-    (*player1)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
-    (*player1)->sizeX = PLAYER_SIZE_X;
-    (*player1)->sizeY = PLAYER_SIZE_Y;
-    (*player1)->requestMoveLeft = false;
-    (*player1)->requestMoveRight = false;
-    (*player1)->requestShoot = false;
+void initializePlayer(Player** player, int x, int y) {
+    *player = (Player*) malloc(sizeof(Player));
+    (*player)->x = x;
+    (*player)->y = y;
+    (*player)->sizeX = PLAYER_SIZE_X;
+    (*player)->sizeY = PLAYER_SIZE_Y;
 
-    *player2 = (Player*) malloc(sizeof(Player));
-    (*player2)->x = 2 * (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2);
-    (*player2)->y = SCREEN_SIZE_Y - PLAYER_SIZE_Y;
-    (*player2)->sizeX = PLAYER_SIZE_X;
-    (*player2)->sizeY = PLAYER_SIZE_Y;
-    (*player2)->requestMoveLeft = false;
-    (*player2)->requestMoveRight = false;
-    (*player2)->requestShoot = false;
+    (*player)->requestMoveLeft = false;
+    (*player)->requestMoveRight = false;
+    (*player)->requestShoot = false;
+
+    (*player)->readyToShootArrow = true;
+    (*player)->shootingArrow = (Arrow*) malloc(sizeof(Arrow));
+    initializePlayerShootingArrow(*player);
+}
+
+void initializePlayerShootingArrow(Player* player) {
+    player->shootingArrow->x = player->x;
+    player->shootingArrow->y = player->y;
+    player->shootingArrow->sizeX = ARROW_SIZE_X;
+    player->shootingArrow->sizeY = ARROW_SIZE_Y;
+    player->shootingArrow->xVelocity = 0;
+    player->shootingArrow->yVelocity = 0;
 }
 
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
@@ -534,6 +554,17 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Play
 
     movePlayer(player1);
     movePlayer(player2);
+
+    moveArrow(player1->shootingArrow);
+    moveArrow(player2->shootingArrow);
+
+    if (player1->requestShoot) {
+        checkAndServicePlayerShootRequest(player1);
+    }
+
+    if (player2->requestShoot) {
+        checkAndServicePlayerShootRequest(player2);
+    }
 }
 
 void moveBubble(Bubble* bubble) {
@@ -591,7 +622,21 @@ void checkAndServicePlayerShootRequest(Player* player) {
     // they are ready to do so (i.e. no currently active previous arrow)
     if (player->requestShoot && player->readyToShootArrow) {
         player->shootingArrow->xVelocity = 0;
-        player->shootingArrow->yVelocity = 0;
+        player->shootingArrow->yVelocity = -ARROW_MOVE_SPEED;
+
+        // Disallow any processing of further shooting requests as long as the current
+        // arrow is still active
+        player->readyToShootArrow = false;
+    }
+}
+
+void destroyPlayerArrowAtTop(Player* player) {
+    if (player->shootingArrow->y <= 0) {
+        // Reset the arrow
+        initializePlayerShootingArrow(player);
+
+        // Allow for the processing of subsequent (new) shooting requests
+        player->readyToShootArrow = true;
     }
 }
 
@@ -603,8 +648,7 @@ void movePlayer(Player* player) {
         if (player->x < 0) {
             player->x = 0;
         }
-    }
-    else if (player->requestMoveRight) {
+    } else if (player->requestMoveRight) {
         player->x += PLAYER_MOVE_SPEED;
 
         // Constrain the player from moving off the screen (right edge)
