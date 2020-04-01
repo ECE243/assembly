@@ -284,16 +284,27 @@ void fetchInputs(Player* player1, Player* player2) {
             player2->requestMoveLeft = true;
 
         }
-      if (*KEY_PTR == 0b100)
+      else if (*KEY_PTR == 0b100)
       {
           player1->requestShoot = true;
           player2->requestShoot = true;
       }
-      if (*KEY_PTR == 0b1)
+      else if (*KEY_PTR == 0b1)
       
       {
           player1->requestMoveRight = true;
           player2->requestMoveRight = true;
+      }
+      else {
+            player1->requestMoveLeft = false;
+           player2->requestMoveLeft = false;
+
+          player1->requestShoot = false;
+          player2->requestShoot = false;
+
+          player1->requestMoveRight = false;
+          player2->requestMoveRight = false;
+
       }
 
 
