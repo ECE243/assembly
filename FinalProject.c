@@ -14,6 +14,10 @@
 #define PLAYER_SIZE_Y 30
 #define PLAYER_MOVE_SPEED 3
 
+#define PLAYER_MOVE_LEFT_BUTTON_CODE 0b0100
+#define PLAYER_MOVE_RIGHT_BUTTON_CODE 0b0001
+#define PLAYER_SHOOT_BUTTON_CODE 0b0010
+
 const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x93, 0x05, 0x29, 0xa7, 0x62, 0x07, 0x8c, 0x67, 0x94,
@@ -292,34 +296,27 @@ void initializeInputIO() {
 }
 
 void fetchInputs(Player* player1, Player* player2) {
-    {
-
-
-        if (*KEY_PTR == 0b100) {
-            player1->requestMoveLeft = true;
-            player2->requestMoveLeft = true;
-
-        } else if (*KEY_PTR == 0b100) {
-            player1->requestShoot = true;
-            player2->requestShoot = true;
-        } else if (*KEY_PTR == 0b1) {
-            player1->requestMoveRight = true;
-            player2->requestMoveRight = true;
-        } else {
-            player1->requestMoveLeft = false;
-            player2->requestMoveLeft = false;
-
-            player1->requestShoot = false;
-            player2->requestShoot = false;
-
-            player1->requestMoveRight = false;
-            player2->requestMoveRight = false;
-
-        }
-
-    }
     // Update the 'requestMoveLeft', 'requestMoveRight', and 'requestShoot' flags
     // of each player depending on what the user presses
+    if (*KEY_PTR == PLAYER_MOVE_LEFT_BUTTON_CODE) {
+        player1->requestMoveLeft = true;
+        player2->requestMoveLeft = true;
+    } else if (*KEY_PTR == PLAYER_SHOOT_BUTTON_CODE) {
+        player1->requestShoot = true;
+        player2->requestShoot = true;
+    } else if (*KEY_PTR == PLAYER_MOVE_RIGHT_BUTTON_CODE) {
+        player1->requestMoveRight = true;
+        player2->requestMoveRight = true;
+    } else {
+        player1->requestMoveLeft = false;
+        player2->requestMoveLeft = false;
+
+        player1->requestShoot = false;
+        player2->requestShoot = false;
+
+        player1->requestMoveRight = false;
+        player2->requestMoveRight = false;
+    }
 }
 
 //----------Graphics Function Definitions---------------
@@ -339,8 +336,13 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     drawPlayer(player1, false);
     drawPlayer(player2, false);
 
-    drawArrow(player1->shootingArrow, false);
-    drawArrow(player2->shootingArrow, false);
+    if (!player1->readyToShootArrow) {
+        drawArrow(player1->shootingArrow, false);
+    }
+
+    if (!player2->readyToShootArrow) {
+        drawArrow(player2->shootingArrow, false);
+    }
 
     waiting();
 
@@ -352,8 +354,13 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     drawPlayer(player1, true);
     drawPlayer(player2, true);
 
-    drawArrow(player1->shootingArrow, true);
-    drawArrow(player2->shootingArrow, true);
+    if (!player1->readyToShootArrow) {
+        drawArrow(player1->shootingArrow, true);
+    }
+
+    if (!player2->readyToShootArrow) {
+        drawArrow(player2->shootingArrow, true);
+    }
 }
 
 void clear_screen() {
@@ -387,7 +394,7 @@ void drawPlayer(const Player* player, bool erase) {
         int red = ((playerArray[array + 1] & 0xF8) >> 3) << 11;
         int green = (((playerArray[array] & 0xE0) >> 5)) | ((playerArray[array + 1] & 0x7) << 3);
 
-        int blue = (playerArray[array] & 0x1f);
+        int blue = playerArray[array] & 0x1f;
         if (erase == true) {
             playerColor = 0x0;
         } else {
@@ -659,8 +666,3 @@ bool checkBubblePlayerCollision(Bubble* bubble, Player* player) {
            (bubble->centerY + bubble->radius >= player->y) &&
            (bubble->centerY - bubble->radius <= player->y + player->sizeY);
 }
-
-
-
-
-
