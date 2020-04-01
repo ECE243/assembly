@@ -276,6 +276,8 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
         drawBubble(currentListItem->bubbleData, 0x07E0);
         currentListItem = currentListItem->next;
     }
+	drawPlayer(player1,false);
+    drawPlayer(player2,false);
 
     waiting();
 
@@ -284,14 +286,11 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
         drawBubble(currentListItem->bubbleData, 0x0000);
         currentListItem = currentListItem->next;
     }
-
-    drawPlayer(player1,false);
-    drawPlayer(player2,false);
-	
-	waiting();
-		
-    drawPlayer(player1,true);
+	drawPlayer(player1,true);
     drawPlayer(player2,true);	
+
+
+
 }
 
 void clear_screen() {
