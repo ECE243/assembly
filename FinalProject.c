@@ -6,6 +6,10 @@
 
 #define GRAVITATIONAL_CONSTANT 1
 
+#define ARROW_SIZE_X
+#define ARROW_SIZE_Y
+#define ARROW_MOVE_SPEED 7
+
 #define PLAYER_SIZE_X 22
 #define PLAYER_SIZE_Y 30
 #define PLAYER_MOVE_SPEED 3
@@ -182,6 +186,13 @@ void removeBubbleFromList(BubbleLinkedListItem* listHead, Bubble* bubbleToRemove
     removeBubbleAfter(listHead);
 }
 
+typedef struct arrow {
+    int x, y;
+    int sizeX, sizeY;
+
+    int xVelocity, yVelocity;
+} Arrow;
+
 typedef struct player {
     int x, y;
     int sizeX, sizeY;
@@ -189,6 +200,9 @@ typedef struct player {
     // Flags that represent the "intention" of the user controlling
     // the player (e.g. did they press the move left button?)
     bool requestMoveLeft, requestMoveRight, requestShoot;
+
+    bool readyToShootArrow;
+    Arrow* shootingArrow;
 } Player;
 
 //----------User Input Function Declarations------------
@@ -315,8 +329,6 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     }
 	drawPlayer(player1,true);
     drawPlayer(player2,true);	
-
-
 
 }
 
@@ -509,6 +521,20 @@ void bounceBubbleOffScreen(Bubble* bubble) {
     if (bubble->centerY + bubble->radius >= SCREEN_SIZE_Y) {
         bubble->centerY = SCREEN_SIZE_Y - bubble->radius;
         bubble->yVelocity *= -1;
+    }
+}
+
+void moveArrow(Arrow* arrow) {
+    arrow->x += arrow->xVelocity;
+    arrow->y += arrow->yVelocity;
+}
+
+void checkAndServicePlayerShootRequest(Player* player) {
+    // Only shoot if the player has requested to shoot, AND if
+    // they are ready to do so (i.e. no currently active previous arrow)
+    if (player->requestShoot && player->readyToShootArrow) {
+        player->shootingArrow->xVelocity = 0;
+        player->shootingArrow->yVelocity = 0;
     }
 }
 
