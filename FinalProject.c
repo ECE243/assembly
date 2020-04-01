@@ -91,7 +91,7 @@ const int playerArray[] =
          0xa5, 0x08, 0x24, 0x00, 0x45, 0x00};
 
 
-const int energyBeam = {  0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00, 
+const int arrowArray[] = {  0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00, 
   0x60, 0x10, 0xb4, 0xe6, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff, 0xc5, 0x6a, 
   0xe2, 0x49, 0xfd, 0xff, 0xff, 0xff, 0xdf, 0xff, 0xff, 0xff, 0x8f, 0xc5, 
   0x81, 0x41, 0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0c, 0xb5, 
@@ -231,7 +231,7 @@ const volatile int* KEY_PTR = (int*) 0xFF200050;
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
-void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2);
+void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2, const Arrow* arrowAttack);
 void clear_screen();
 
 void waiting();
@@ -239,6 +239,7 @@ void waiting();
 void plot_pixel(int x, int y, short int line_color);
 void drawLine(int x0, int y0, int x1, int y1, short int color);
 void drawPlayer(const Player* player, bool erase);
+void drawArrow(const Arrow* arrow, bool erase);
 void drawBubble(const Bubble* bubble, short int color);
 
 volatile int pixel_buffer_start; // global variable
@@ -268,11 +269,12 @@ int main(void) {
     // Pointers to the player objects for the (up to) 2 players
     Player* player1;
     Player* player2;
+    Arrow*  energyBeam;
 
     initializeGame(&bubblesListHead, &player1, &player2);
 
     while (!gameOver) {
-        drawScreen(bubblesListHead, player1, player2);
+        drawScreen(bubblesListHead, player1, player2,energyBeam);
         fetchInputs(player1, player2);
         updateGameState(bubblesListHead, player1, player2);
     }
@@ -334,7 +336,7 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2) {
+void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2, const Arrow* arrowAttack) {
     const BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
         drawBubble(currentListItem->bubbleData, 0x07E0);
@@ -342,6 +344,7 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     }
 	drawPlayer(player1,false);
     drawPlayer(player2,false);
+    drawArrow(arrowAttack, false);
 
     waiting();
 
@@ -406,7 +409,7 @@ void drawPlayer(const Player* player, bool erase) {
 }
 
 
-void drawarrow(const Arrow* arrow, bool erase) {
+void drawArrow(const Arrow* arrow, bool erase) {
    int x = arrow->x;
    int y = arrow->y;
    short int arrowColor;
