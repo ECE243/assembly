@@ -555,16 +555,18 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Play
     movePlayer(player1);
     movePlayer(player2);
 
-    moveArrow(player1->shootingArrow);
-    moveArrow(player2->shootingArrow);
-
-    if (player1->requestShoot) {
-        checkAndServicePlayerShootRequest(player1);
+    if (!player1->readyToShootArrow) {
+        moveArrow(player1->shootingArrow);
+        destroyPlayerArrowAtTop(player1);
     }
 
-    if (player2->requestShoot) {
-        checkAndServicePlayerShootRequest(player2);
+    if (!player2->readyToShootArrow) {
+        moveArrow(player2->shootingArrow);
+        destroyPlayerArrowAtTop(player2);
     }
+
+    checkAndServicePlayerShootRequest(player1);
+    checkAndServicePlayerShootRequest(player2);
 }
 
 void moveBubble(Bubble* bubble) {
