@@ -210,7 +210,7 @@ void waiting();
 
 void plot_pixel(int x, int y, short int line_color);
 void drawLine(int x0, int y0, int x1, int y1, short int color);
-void drawPlayer(const Player* player);
+void drawPlayer(const Player* player, bool erase);
 void drawBubble(const Bubble* bubble, short int color);
 
 volatile int pixel_buffer_start; // global variable
@@ -285,8 +285,13 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
         currentListItem = currentListItem->next;
     }
 
-    drawPlayer(player1);
-    drawPlayer(player2);
+    drawPlayer(player1,false);
+    drawPlayer(player2,false);
+	
+	waiting();
+		
+    drawPlayer(player1,true);
+    drawPlayer(player2,true);	
 }
 
 void clear_screen() {
