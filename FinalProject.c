@@ -14,24 +14,12 @@
 #define PLAYER_SIZE_Y 30
 #define PLAYER_MOVE_SPEED 3
 
-//#define PLAYER1_MOVE_LEFT_PUSHBUTTON_CODE 0b0100
-//#define PLAYER1_MOVE_RIGHT_PUSHBUTTON_CODE 0b0001
-//#define PLAYER1_SHOOT_PUSHBUTTON_CODE 0b0010
-//#define PLAYER2_MOVE_LEFT_PUSHBUTTON_CODE 0b0100
-//#define PLAYER2_MOVE_RIGHT_PUSHBUTTON_CODE 0b0001
-//#define PLAYER2_SHOOT_PUSHBUTTON_CODE 0b0010
-
 #define PLAYER1_MOVE_LEFT_KEYBOARD_CODE 0x1C
 #define PLAYER1_MOVE_RIGHT_KEYBOARD_CODE 0x23
 #define PLAYER1_SHOOT_KEYBOARD_CODE 0x1D
 #define PLAYER2_MOVE_LEFT_KEYBOARD_CODE 0x6B
 #define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
 #define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
-
-#define LEDR_PTR ((volatile long *) 0xFF200000)
-
-const volatile int* SW_PTR = (int*) 0xFF200040;
-const volatile int* KEY_PTR = (int*) 0xFF200050;
 
 const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -238,6 +226,8 @@ typedef struct player {
 void initializeInputIO();
 void fetchInputs(Player* player1, Player* player2);
 
+void setTimer();
+
 volatile int* const LEDR_PTR = (int*) 0xFF200000;
 volatile int* const SW_PTR = (int*) 0xFF200040;
 volatile int* const KEY_PTR = (int*) 0xFF200050;
@@ -264,7 +254,7 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 //------------------------------------------------------
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2);
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
-void setTimer();
+
 void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead);
 void initializePlayer(Player** player, int x, int y);
 void initializePlayerShootingArrow(Player* player);
@@ -275,11 +265,13 @@ void bounceBubbleOffScreen(Bubble* bubble);
 
 void moveArrow(Arrow* arrow);
 void destroyPlayerArrowAtTop(Player* player);
+void resetPlayerArrow(Player* player);
 
 void movePlayer(Player* player);
 void checkAndServicePlayerShootRequest(Player* player);
 
 bool checkBubblePlayerCollision(Bubble* bubble, Player* player);
+bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow);
 
 bool gameOver = false;
 
@@ -312,7 +304,8 @@ void initializeInputIO() {
     *PS2_PTR = 0xF4;
 
     // Wait for the acknowledgement
-    while ((*PS2_PTR & 0xFF) != 0xFA) {}
+    while ((*PS2_PTR & 0xFF) != 0xFA) {
+    }
 }
 
 void fetchInputs(Player* player1, Player* player2) {
@@ -361,9 +354,9 @@ void fetchInputs(Player* player1, Player* player2) {
     }
 }
 
-void setTimer(){
+void setTimer() {
 
-     *LEDR_PTR = 0x0fff;
+    *LEDR_PTR = 0x0fff;
 
 }
 
@@ -462,7 +455,6 @@ void drawPlayer(const Player* player, bool erase) {
 
 }
 
-
 void drawArrow(const Arrow* arrow, bool erase) {
     int x = arrow->x;
     int y = arrow->y;
@@ -491,7 +483,6 @@ void drawArrow(const Arrow* arrow, bool erase) {
     }
 
 }
-
 
 // Uses Bresenham's Algorithm for drawing a circle (src: geeksforgeeks.com)
 void drawBubble(const Bubble* bubble, short int color) {
@@ -576,7 +567,7 @@ void initializePlayer(Player** player, int x, int y) {
 }
 
 void initializePlayerShootingArrow(Player* player) {
-    player->shootingArrow->x = player->x;
+    player->shootingArrow->x = player->x + (player->sizeX / 2) - (player->shootingArrow->sizeX / 2);
     player->shootingArrow->y = player->y;
     player->shootingArrow->sizeX = ARROW_SIZE_X;
     player->shootingArrow->sizeY = ARROW_SIZE_Y;
@@ -595,6 +586,16 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Play
             break;
         }
 
+        if (!player1->readyToShootArrow && checkArrowBubbleCollision(bubbleListHead->bubbleData, player1->shootingArrow)) {
+            gameOver = true;
+            break;
+        }
+
+        if (!player2->readyToShootArrow && checkArrowBubbleCollision(bubbleListHead->bubbleData, player2->shootingArrow)) {
+            gameOver = true;
+            break;
+        }
+
         accelerateBubbleDown(bubbleListHead->bubbleData);
 
         bubbleListHead = bubbleListHead->next;
@@ -603,6 +604,9 @@ void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Play
     movePlayer(player1);
     movePlayer(player2);
 
+    // If the player has shot the arrow (in which case, they aren't ready to shoot any more),
+    // update the arrow and check for collisions with the top edge
+    // (Note: collisions with a bubble are handled above)
     if (!player1->readyToShootArrow) {
         moveArrow(player1->shootingArrow);
         destroyPlayerArrowAtTop(player1);
@@ -677,7 +681,10 @@ void checkAndServicePlayerShootRequest(Player* player) {
     // Only shoot if the player has requested to shoot, AND if
     // they are ready to do so (i.e. no currently active previous arrow)
     if (player->requestShoot && player->readyToShootArrow) {
-        player->shootingArrow->xVelocity = 0;
+        // Reposition the arrow to the new location
+        player->shootingArrow->x = player->x + (player->sizeX / 2) - (player->shootingArrow->sizeX / 2);
+
+        // Set it to start moving upwards
         player->shootingArrow->yVelocity = -ARROW_MOVE_SPEED;
 
         // Disallow any processing of further shooting requests as long as the current
@@ -688,12 +695,15 @@ void checkAndServicePlayerShootRequest(Player* player) {
 
 void destroyPlayerArrowAtTop(Player* player) {
     if (player->shootingArrow->y <= 0) {
-        // Reset the arrow
-        initializePlayerShootingArrow(player);
-
-        // Allow for the processing of subsequent (new) shooting requests
-        player->readyToShootArrow = true;
+        resetPlayerArrow(player);
     }
+}
+
+void resetPlayerArrow(Player* player) {
+    initializePlayerShootingArrow(player);
+
+    // Allow for the processing of subsequent (new) shooting requests
+    player->readyToShootArrow = true;
 }
 
 void movePlayer(Player* player) {
@@ -719,4 +729,11 @@ bool checkBubblePlayerCollision(Bubble* bubble, Player* player) {
            (bubble->centerX - bubble->radius <= player->x + player->sizeX) &&
            (bubble->centerY + bubble->radius >= player->y) &&
            (bubble->centerY - bubble->radius <= player->y + player->sizeY);
+}
+
+bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow) {
+    return (bubble->centerX + bubble->radius >= arrow->x) &&
+           (bubble->centerX - bubble->radius <= arrow->x + arrow->sizeX) &&
+           (bubble->centerY + bubble->radius >= arrow->y) &&
+           (bubble->centerY - bubble->radius <= arrow->y + arrow->sizeY);
 }
