@@ -4,7 +4,9 @@
 #define SCREEN_SIZE_X 320
 #define SCREEN_SIZE_Y 240
 
+#define SMALLEST_BUBBLE_RADIUS 4
 #define GRAVITATIONAL_CONSTANT 1
+#define BONUS_Y_VELOCITY_AFTER_SPLIT -6
 
 #define ARROW_SIZE_X 10
 #define ARROW_SIZE_Y 10
@@ -119,7 +121,7 @@ typedef struct bubbleLinkedListItem {
     struct bubbleLinkedListItem* next;
 } BubbleLinkedListItem;
 
-void addBubbleToList(BubbleLinkedListItem** listHead, Bubble* bubbleToAdd) {
+void addBubbleToEndOfList(BubbleLinkedListItem** listHead, Bubble* bubbleToAdd) {
     if (listHead == NULL) {
         return;
     }
@@ -144,6 +146,22 @@ void addBubbleToList(BubbleLinkedListItem** listHead, Bubble* bubbleToAdd) {
     currentListItem->next = (BubbleLinkedListItem*) malloc(sizeof(BubbleLinkedListItem));
     currentListItem->next->bubbleData = bubbleToAdd;
     currentListItem->next->next = NULL;
+}
+
+void addBubbleAfter(BubbleLinkedListItem* beforeItemToAdd, Bubble* bubbleToAdd) {
+    // If the list is empty, insert the bubble at the beginning of the list
+    if (beforeItemToAdd == NULL) {
+        return;
+    }
+
+    // Create a new BubbleLinkedListItem for the bubble that is to be added
+    BubbleLinkedListItem* itemToAdd = (BubbleLinkedListItem*) malloc(sizeof(BubbleLinkedListItem));
+    itemToAdd->bubbleData = bubbleToAdd;
+
+    // Insert the new bubble item between the 'beforeItemToAdd' and whatever was after 'beforeItemToAdd'
+    BubbleLinkedListItem* afterBubbleToAdd = beforeItemToAdd->next;
+    beforeItemToAdd->next = itemToAdd;
+    itemToAdd->next = afterBubbleToAdd;
 }
 
 void removeBubbleAtHead(BubbleLinkedListItem** plistHead) {
@@ -186,20 +204,25 @@ void removeBubbleAfter(BubbleLinkedListItem* beforeItemToDelete) {
     free(itemToDelete); // Free the list item
 }
 
-void removeBubbleFromList(BubbleLinkedListItem* listHead, Bubble* bubbleToRemove) {
+void removeBubbleFromList(BubbleLinkedListItem** listHead, Bubble* bubbleToRemove) {
     if (listHead == NULL) {
         return;
     }
 
-    if (listHead->bubbleData == bubbleToRemove) {
-        removeBubbleAtHead(&listHead);
+    BubbleLinkedListItem* currentListItem = (*listHead);
+    if (currentListItem == NULL) {
         return;
     }
-    while (listHead->next != NULL && listHead->next->bubbleData != bubbleToRemove) {
-        listHead = listHead->next;
+
+    if (currentListItem->bubbleData == bubbleToRemove) {
+        removeBubbleAtHead(listHead);
+        return;
+    }
+    while (currentListItem->next != NULL && currentListItem->next->bubbleData != bubbleToRemove) {
+        currentListItem = currentListItem->next;
     }
 
-    removeBubbleAfter(listHead);
+    removeBubbleAfter(currentListItem);
 }
 
 typedef struct arrow {
@@ -253,15 +276,18 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2);
-void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
+void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, Player* player2);
 
 void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead);
+Bubble* createBubble(int centerX, int centerY, int radius, int xVelocity, int yVelocity);
+
 void initializePlayer(Player** player, int x, int y);
 void initializePlayerShootingArrow(Player* player);
 
 void moveBubble(Bubble* bubble);
 void accelerateBubbleDown(Bubble* bubble);
 void bounceBubbleOffScreen(Bubble* bubble);
+void breakBubble(BubbleLinkedListItem* bubbleToBreakListItem);
 
 void moveArrow(Arrow* arrow);
 void destroyPlayerArrowAtTop(Player* player);
@@ -291,7 +317,7 @@ int main(void) {
         drawScreen(bubblesListHead, player1, player2);
         setTimer();
         fetchInputs(player1, player2);
-        updateGameState(bubblesListHead, player1, player2);
+        updateGameState(&bubblesListHead, player1, player2);
     }
 
     return 0;
@@ -538,16 +564,20 @@ void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead) {
     *pBubblesListHead = NULL;
 
     for (int i = 0; i < 1; i++) {
-        Bubble* bubbleToAdd = (Bubble*) malloc(sizeof(Bubble));
-        bubbleToAdd->centerX = 50 * (i + 1);
-        bubbleToAdd->centerY = 50;
-        bubbleToAdd->radius = 20;
-
-        bubbleToAdd->xVelocity = 1;
-        bubbleToAdd->yVelocity = 0;
-
-        addBubbleToList(pBubblesListHead, bubbleToAdd);
+        addBubbleToEndOfList(pBubblesListHead, createBubble(50 * (i + 1), 50, 32, 1, 0));
     }
+}
+
+Bubble* createBubble(int centerX, int centerY, int radius, int xVelocity, int yVelocity) {
+    Bubble* newBubble = (Bubble*) malloc(sizeof(Bubble));
+    newBubble->centerX = centerX;
+    newBubble->centerY = centerY;
+    newBubble->radius = radius;
+
+    newBubble->xVelocity = xVelocity;
+    newBubble->yVelocity = yVelocity;
+
+    return newBubble;
 }
 
 void initializePlayer(Player** player, int x, int y) {
@@ -575,30 +605,50 @@ void initializePlayerShootingArrow(Player* player) {
     player->shootingArrow->yVelocity = 0;
 }
 
-void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2) {
-    while (bubbleListHead != NULL) {
-        moveBubble(bubbleListHead->bubbleData);
-        bounceBubbleOffScreen(bubbleListHead->bubbleData);
+void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, Player* player2) {
+    BubbleLinkedListItem* current = *pBubblesListHead;
 
-        if (checkBubblePlayerCollision(bubbleListHead->bubbleData, player1) ||
-            checkBubblePlayerCollision(bubbleListHead->bubbleData, player2)) {
+    while (current != NULL) {
+        moveBubble(current->bubbleData);
+        bounceBubbleOffScreen(current->bubbleData);
+
+        if (checkBubblePlayerCollision(current->bubbleData, player1) ||
+            checkBubblePlayerCollision(current->bubbleData, player2)) {
             gameOver = true;
             break;
         }
 
-        if (!player1->readyToShootArrow && checkArrowBubbleCollision(bubbleListHead->bubbleData, player1->shootingArrow)) {
-            gameOver = true;
-            break;
+        if (!player1->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player1->shootingArrow)) {
+            if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
+                breakBubble(current);
+            }
+            else {
+                removeBubbleFromList(pBubblesListHead, current->bubbleData);
+                if (*pBubblesListHead == NULL) {
+                    gameOver = true;
+                    break;
+                }
+            }
+            resetPlayerArrow(player1);
         }
 
-        if (!player2->readyToShootArrow && checkArrowBubbleCollision(bubbleListHead->bubbleData, player2->shootingArrow)) {
-            gameOver = true;
-            break;
+        if (!player2->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player2->shootingArrow)) {
+            if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
+                breakBubble(current);
+            }
+            else {
+                removeBubbleFromList(pBubblesListHead, current->bubbleData);
+                if (*pBubblesListHead == NULL) {
+                    gameOver = true;
+                    break;
+                }
+            }
+            resetPlayerArrow(player2);
         }
 
-        accelerateBubbleDown(bubbleListHead->bubbleData);
+        accelerateBubbleDown(current->bubbleData);
 
-        bubbleListHead = bubbleListHead->next;
+        current = current->next;
     }
 
     movePlayer(player1);
@@ -670,6 +720,35 @@ void bounceBubbleOffScreen(Bubble* bubble) {
         accelerateBubbleDown(bubble);
         bubble->yVelocity *= -1;
     }
+}
+
+void breakBubble(BubbleLinkedListItem* bubbleToBreakListItem) {
+    // Break the bubble into two bubbles of equal size (the first of these bubbles
+    // will overwrite the old one, and the second bubble will be added to the list
+    // immediately after the first)
+
+    Bubble* firstSplitBubble = bubbleToBreakListItem->bubbleData;
+
+    // First duplicate the first bubble and add the copy immediately after it
+    Bubble* secondSplitBubble = createBubble(firstSplitBubble->centerX, firstSplitBubble->centerY, firstSplitBubble->radius,
+                                             firstSplitBubble->xVelocity, firstSplitBubble->yVelocity);
+    addBubbleAfter(bubbleToBreakListItem, secondSplitBubble);
+
+    // 1) Half the size of both bubbles
+    // 2) Push them a bit in opposite directions along the x-axis (to create some separation from each
+    //    other after the split)
+    // 3) Ensure that the two duplicates move in opposite directions along the x-axis after the split
+    // 4) Give each bubble a "bonus y-push" to award the player for the split
+
+    firstSplitBubble->centerX += firstSplitBubble->xVelocity;
+    firstSplitBubble->radius /= 2;
+    firstSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
+
+    secondSplitBubble->centerX -= secondSplitBubble->xVelocity;
+    secondSplitBubble->radius /= 2;
+    secondSplitBubble->xVelocity = -secondSplitBubble->xVelocity;
+    secondSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
+
 }
 
 void moveArrow(Arrow* arrow) {
