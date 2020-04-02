@@ -18,6 +18,11 @@
 #define PLAYER_MOVE_RIGHT_BUTTON_CODE 0b0001
 #define PLAYER_SHOOT_BUTTON_CODE 0b0010
 
+#define LEDR_PTR ((volatile long *) 0xFF200000)
+
+const volatile int* SW_PTR = (int*) 0xFF200040;
+const volatile int* KEY_PTR = (int*) 0xFF200050;
+
 const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x93, 0x05, 0x29, 0xa7, 0x62, 0x07, 0x8c, 0x67, 0x94,
@@ -224,9 +229,6 @@ typedef struct player {
 void initializeInputIO();
 void fetchInputs(Player* player1, Player* player2);
 
-const volatile int* LEDR_PTR = (int*) 0xFF200000;
-const volatile int* SW_PTR = (int*) 0xFF200040;
-const volatile int* KEY_PTR = (int*) 0xFF200050;
 
 
 //-----------Graphics Function Declarations-------------
@@ -250,7 +252,7 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 //------------------------------------------------------
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2);
 void updateGameState(BubbleLinkedListItem* bubbleListHead, Player* player1, Player* player2);
-
+void setTimer();
 void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead);
 void initializePlayer(Player** player, int x, int y);
 void initializePlayerShootingArrow(Player* player);
@@ -272,6 +274,7 @@ bool gameOver = false;
 int main(void) {
     initializeGraphics();
     initializeInputIO();
+    
 
     // The list of all the bouncing bubbles
     BubbleLinkedListItem* bubblesListHead;
@@ -283,6 +286,7 @@ int main(void) {
 
     while (!gameOver) {
         drawScreen(bubblesListHead, player1, player2);
+        setTimer();
         fetchInputs(player1, player2);
         updateGameState(bubblesListHead, player1, player2);
     }
@@ -317,6 +321,12 @@ void fetchInputs(Player* player1, Player* player2) {
         player1->requestMoveRight = false;
         player2->requestMoveRight = false;
     }
+}
+
+void setTimer(){
+	
+     *LEDR_PTR = 0x0fff;
+
 }
 
 //----------Graphics Function Definitions---------------
@@ -485,6 +495,9 @@ void drawBubble(const Bubble* bubble, short int color) {
         plot_pixel(bubble->centerX - y, bubble->centerY - x, colour);
     }
 }
+
+
+
 
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
