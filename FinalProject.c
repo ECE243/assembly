@@ -14,9 +14,19 @@
 #define PLAYER_SIZE_Y 30
 #define PLAYER_MOVE_SPEED 3
 
-#define PLAYER_MOVE_LEFT_BUTTON_CODE 0b0100
-#define PLAYER_MOVE_RIGHT_BUTTON_CODE 0b0001
-#define PLAYER_SHOOT_BUTTON_CODE 0b0010
+//#define PLAYER1_MOVE_LEFT_PUSHBUTTON_CODE 0b0100
+//#define PLAYER1_MOVE_RIGHT_PUSHBUTTON_CODE 0b0001
+//#define PLAYER1_SHOOT_PUSHBUTTON_CODE 0b0010
+//#define PLAYER2_MOVE_LEFT_PUSHBUTTON_CODE 0b0100
+//#define PLAYER2_MOVE_RIGHT_PUSHBUTTON_CODE 0b0001
+//#define PLAYER2_SHOOT_PUSHBUTTON_CODE 0b0010
+
+#define PLAYER1_MOVE_LEFT_KEYBOARD_CODE 0x1C
+#define PLAYER1_MOVE_RIGHT_KEYBOARD_CODE 0x23
+#define PLAYER1_SHOOT_KEYBOARD_CODE 0x1D
+#define PLAYER2_MOVE_LEFT_KEYBOARD_CODE 0x6B
+#define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
+#define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
 
 #define LEDR_PTR ((volatile long *) 0xFF200000)
 
@@ -98,7 +108,6 @@ const int playerArray[] =
          0xc9, 0x31, 0x6b, 0x4a, 0x49, 0x52, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x19, 0xff, 0xff, 0x00, 0x10,
          0xa5, 0x08, 0x24, 0x00, 0x45, 0x00};
-
 
 const int arrowArray[] =
         {0x00, 0x00, 0x82, 0x41, 0xf2, 0xcd, 0xb6, 0xe6, 0xa8, 0x8b, 0x00, 0x00, 0x60, 0x10, 0xb4, 0xe6, 0xff, 0xff,
@@ -229,7 +238,10 @@ typedef struct player {
 void initializeInputIO();
 void fetchInputs(Player* player1, Player* player2);
 
-
+volatile int* const LEDR_PTR = (int*) 0xFF200000;
+volatile int* const SW_PTR = (int*) 0xFF200040;
+volatile int* const KEY_PTR = (int*) 0xFF200050;
+volatile int* const PS2_PTR = (int*) 0xFF200100;
 
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
@@ -274,7 +286,6 @@ bool gameOver = false;
 int main(void) {
     initializeGraphics();
     initializeInputIO();
-    
 
     // The list of all the bouncing bubbles
     BubbleLinkedListItem* bubblesListHead;
@@ -297,34 +308,61 @@ int main(void) {
 //----------User Input Function Definitions-------------
 //------------------------------------------------------
 void initializeInputIO() {
+    // Enable the keyboard
+    *PS2_PTR = 0xF4;
+
+    // Wait for the acknowledgement
+    while ((*PS2_PTR & 0xFF) != 0xFA) {}
 }
 
 void fetchInputs(Player* player1, Player* player2) {
-    // Update the 'requestMoveLeft', 'requestMoveRight', and 'requestShoot' flags
-    // of each player depending on what the user presses
-    if (*KEY_PTR == PLAYER_MOVE_LEFT_BUTTON_CODE) {
-        player1->requestMoveLeft = true;
-        player2->requestMoveLeft = true;
-    } else if (*KEY_PTR == PLAYER_SHOOT_BUTTON_CODE) {
-        player1->requestShoot = true;
-        player2->requestShoot = true;
-    } else if (*KEY_PTR == PLAYER_MOVE_RIGHT_BUTTON_CODE) {
-        player1->requestMoveRight = true;
-        player2->requestMoveRight = true;
-    } else {
-        player1->requestMoveLeft = false;
-        player2->requestMoveLeft = false;
+    unsigned PS2Data = *PS2_PTR;
+    // If no data is available to read, do nothing
+    while ((PS2Data & 0x8000) != 0) {
+        // If the key is E0, the key pressed is one of the arrow keys,
+        // but to find out which we need to read the next input
+        if ((PS2Data & 0xFF) == 0xE0) {
+            do {
+                PS2Data = *PS2_PTR;
+            } while ((PS2Data & 0x8000) == 0);
+        }
 
-        player1->requestShoot = false;
-        player2->requestShoot = false;
+        // Every break sequence is initiated with 0xF0
+        bool isBreakCode = (PS2Data & 0xFF) == 0xF0;
 
-        player1->requestMoveRight = false;
-        player2->requestMoveRight = false;
+        // If a break code is encountered, determine which key was released
+        if (isBreakCode) {
+            // Wait for the next keycode in the break sequence to be
+            // transmitted
+            do {
+                PS2Data = *PS2_PTR;
+            } while ((PS2Data & 0x8000) == 0);
+        }
+
+        char pressedKeyCode = PS2Data & 0xFF;
+
+        // Update the 'requestMoveLeft', 'requestMoveRight', and 'requestShoot' flags
+        // of each player depending on what the user presses
+        if (pressedKeyCode == PLAYER1_MOVE_LEFT_KEYBOARD_CODE) {
+            player1->requestMoveLeft = !isBreakCode;
+        } else if (pressedKeyCode == PLAYER1_MOVE_RIGHT_KEYBOARD_CODE) {
+            player1->requestMoveRight = !isBreakCode;
+        } else if (pressedKeyCode == PLAYER1_SHOOT_KEYBOARD_CODE) {
+            player1->requestShoot = !isBreakCode;
+        } else if (pressedKeyCode == PLAYER2_MOVE_LEFT_KEYBOARD_CODE) {
+            player2->requestMoveLeft = !isBreakCode;
+        } else if (pressedKeyCode == PLAYER2_MOVE_RIGHT_KEYBOARD_CODE) {
+            player2->requestMoveRight = !isBreakCode;
+        } else if (pressedKeyCode == PLAYER2_SHOOT_KEYBOARD_CODE) {
+            player2->requestShoot = !isBreakCode;
+        }
+
+        PS2Data = *PS2_PTR;
     }
 }
 
 void setTimer(){
-	
+
      *LEDR_PTR = 0x0fff;
 
 }
@@ -495,9 +533,6 @@ void drawBubble(const Bubble* bubble, short int color) {
         plot_pixel(bubble->centerX - y, bubble->centerY - x, colour);
     }
 }
-
-
-
 
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
