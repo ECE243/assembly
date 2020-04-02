@@ -6,7 +6,7 @@
 
 #define SMALLEST_BUBBLE_RADIUS 4
 #define GRAVITATIONAL_CONSTANT 1
-#define BONUS_Y_VELOCITY_AFTER_SPLIT -6
+#define BONUS_Y_VELOCITY_AFTER_SPLIT -3
 
 #define ARROW_SIZE_X 10
 #define ARROW_SIZE_Y 10
@@ -621,8 +621,7 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
         if (!player1->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player1->shootingArrow)) {
             if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
                 breakBubble(current);
-            }
-            else {
+            } else {
                 removeBubbleFromList(pBubblesListHead, current->bubbleData);
                 if (*pBubblesListHead == NULL) {
                     gameOver = true;
@@ -635,8 +634,7 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
         if (!player2->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player2->shootingArrow)) {
             if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
                 breakBubble(current);
-            }
-            else {
+            } else {
                 removeBubbleFromList(pBubblesListHead, current->bubbleData);
                 if (*pBubblesListHead == NULL) {
                     gameOver = true;
@@ -730,24 +728,31 @@ void breakBubble(BubbleLinkedListItem* bubbleToBreakListItem) {
     Bubble* firstSplitBubble = bubbleToBreakListItem->bubbleData;
 
     // First duplicate the first bubble and add the copy immediately after it
-    Bubble* secondSplitBubble = createBubble(firstSplitBubble->centerX, firstSplitBubble->centerY, firstSplitBubble->radius,
-                                             firstSplitBubble->xVelocity, firstSplitBubble->yVelocity);
+    Bubble* secondSplitBubble =
+            createBubble(firstSplitBubble->centerX, firstSplitBubble->centerY, firstSplitBubble->radius,
+                         firstSplitBubble->xVelocity, firstSplitBubble->yVelocity);
     addBubbleAfter(bubbleToBreakListItem, secondSplitBubble);
 
     // 1) Half the size of both bubbles
     // 2) Push them a bit in opposite directions along the x-axis (to create some separation from each
     //    other after the split)
     // 3) Ensure that the two duplicates move in opposite directions along the x-axis after the split
-    // 4) Give each bubble a "bonus y-push" to award the player for the split
+    // 4) Give each bubble a "bonus y-push" to award the player for the split (but only if it is moving down,
+    //    fast enough, since if it is moving up and we push it further up, it will move faster than
+    //    before (more kinetic energy) and that wouldn't be a bonus)
 
     firstSplitBubble->centerX += firstSplitBubble->xVelocity;
     firstSplitBubble->radius /= 2;
-    firstSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
+    if (firstSplitBubble->yVelocity >= -BONUS_Y_VELOCITY_AFTER_SPLIT) {
+        firstSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
+    }
 
     secondSplitBubble->centerX -= secondSplitBubble->xVelocity;
     secondSplitBubble->radius /= 2;
     secondSplitBubble->xVelocity = -secondSplitBubble->xVelocity;
-    secondSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
+    if (secondSplitBubble->yVelocity >= -BONUS_Y_VELOCITY_AFTER_SPLIT) {
+        secondSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
+    }
 
 }
 
@@ -814,5 +819,6 @@ bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow) {
     return (bubble->centerX + bubble->radius >= arrow->x) &&
            (bubble->centerX - bubble->radius <= arrow->x + arrow->sizeX) &&
            (bubble->centerY + bubble->radius >= arrow->y) &&
-           (bubble->centerY - bubble->radius <= arrow->y + arrow->sizeY);
+           (bubble->centerY - bubble->radius <= arrow->y + arrow->sizeY); // Note: the y conditions are modified to ensure that
+                                                           // only the tops of arrows can hit bubbles
 }
