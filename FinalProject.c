@@ -6,6 +6,7 @@
 
 #define SMALLEST_BUBBLE_RADIUS 4
 #define GRAVITATIONAL_CONSTANT 1
+#define LENGTH_OF_GAME_SECONDS 90
 #define BONUS_Y_VELOCITY_AFTER_SPLIT -3
 
 #define ARROW_SIZE_X 10
@@ -23,9 +24,9 @@
 #define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
 #define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
 
-const int HEXArray [10] ={ 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01100111};
-
-const int LEDArray[11] ={0x3FF, 0x1FF, 0xFF, 0x7F,0x3F, 0x1F, 0xF, 0x7, 0x3, 0x1, 0x0};	
+const int HEXArray[10] =
+        {0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111,
+         0b01100111};
 
 const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -253,12 +254,14 @@ typedef struct player {
 void initializeInputIO();
 void fetchInputs(Player* player1, Player* player2);
 
-void countdownTimer ();
+void fetchKeyboardInputs(Player* player1, Player* player2);
+void fetchTimerStatus();
 
 volatile int* const LEDR_PTR = (int*) 0xFF200000;
 volatile int* const SW_PTR = (int*) 0xFF200040;
 volatile int* const KEY_PTR = (int*) 0xFF200050;
 volatile int* const PS2_PTR = (int*) 0xFF200100;
+volatile int* const A9_TIMER_PTR = (int*) 0xFFFEC600;
 
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
@@ -269,7 +272,6 @@ void clear_screen();
 void waiting();
 
 void plot_pixel(int x, int y, short int line_color);
-void drawLine(int x0, int y0, int x1, int y1, short int color);
 void drawPlayer(const Player* player, bool erase);
 void drawArrow(const Arrow* arrow, bool erase);
 void drawBubble(const Bubble* bubble, short int color);
@@ -321,8 +323,6 @@ int main(void) {
         drawScreen(bubblesListHead, player1, player2);
         fetchInputs(player1, player2);
         updateGameState(&bubblesListHead, player1, player2);
-        countdownTimer ();
-
     }
 
     return 0;
@@ -331,15 +331,31 @@ int main(void) {
 //----------User Input Function Definitions-------------
 //------------------------------------------------------
 void initializeInputIO() {
+    // PS2 Keyboard Initialization
+    //----------------------------------------
     // Enable the keyboard
     *PS2_PTR = 0xF4;
-
     // Wait for the acknowledgement
     while ((*PS2_PTR & 0xFF) != 0xFA) {
     }
+
+    // A9 Private Timer Initialization
+    //----------------------------------------
+    // Start the timer with a load value of 1/10 the length of the game (in clock cycles)
+    *A9_TIMER_PTR = (LENGTH_OF_GAME_SECONDS / 10) * 200000000;
+    *(A9_TIMER_PTR + 2) = 1;
+
+    // At the beginning, the user has the full time remaining to complete the game
+    // (i.e. all LEDs should be on to show a "full" progress bar)
+    *LEDR_PTR = 0x3FF;
 }
 
 void fetchInputs(Player* player1, Player* player2) {
+    fetchKeyboardInputs(player1, player2);
+    fetchTimerStatus();
+}
+
+void fetchKeyboardInputs(Player* player1, Player* player2) {
     unsigned PS2Data = *PS2_PTR;
     // If no data is available to read, do nothing
     while ((PS2Data & 0x8000) != 0) {
@@ -385,33 +401,27 @@ void fetchInputs(Player* player1, Player* player2) {
     }
 }
 
-void countdownTimer ()
-    {
-    
-      {
-        int jj = 0;
-        int kk = 0;
-        int a = 0;
-        int b = 0;
-        *LEDR_PTR = LEDArray[kk];
-        if (LEDArray[kk] == 0x0)
-          return 0;
-        jj = jj + 1;
-        if (jj % 2 == 0)
-          {
-    	kk = kk + 1;
-    	//   if(player1hits)
-    	//a = a + 1;
-    	//// *ADDR_7SEG1 = array[a]; 
-    	//   if(player2hits)
-    	//   b=b+1;
-    	//  *ADDR_7SEG1 = array [b]
-          }
-      }
-    
+void fetchTimerStatus() {
+    // If the F bit is set in the timer (meaning it has finished counting),
+    // update the timer status
+    if (*(A9_TIMER_PTR + 3) != 0) {
+        // Update the timer progress bar by decreasing the time remaining
+        // (this is done by logical right-shifting it)
+        *LEDR_PTR = *LEDR_PTR >> 1;
+
+        // If time is up, end the game and disable the timer
+        if (*LEDR_PTR == 0) {
+            gameOver = true;
+            *(A9_TIMER_PTR + 2) = 0;
+        }
+        // Otherwise, restart the timer and continue
+        else {
+            *A9_TIMER_PTR = (LENGTH_OF_GAME_SECONDS / 10) * 200000000;
+            *(A9_TIMER_PTR + 3) = 1; // Writing 1 to the F bit resets the timer
+            *(A9_TIMER_PTR + 2) = 1; // Enable it so it continues counting
+        }
     }
-
-
+}
 
 
 //----------Graphics Function Definitions---------------
@@ -771,14 +781,14 @@ void breakBubble(BubbleLinkedListItem* bubbleToBreakListItem) {
 
     firstSplitBubble->centerX += firstSplitBubble->xVelocity;
     firstSplitBubble->radius /= 2;
-    if (firstSplitBubble->yVelocity >= -BONUS_Y_VELOCITY_AFTER_SPLIT) {
+    if (firstSplitBubble->yVelocity >= - BONUS_Y_VELOCITY_AFTER_SPLIT) {
         firstSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
     }
 
     secondSplitBubble->centerX -= secondSplitBubble->xVelocity;
     secondSplitBubble->radius /= 2;
     secondSplitBubble->xVelocity = -secondSplitBubble->xVelocity;
-    if (secondSplitBubble->yVelocity >= -BONUS_Y_VELOCITY_AFTER_SPLIT) {
+    if (secondSplitBubble->yVelocity >= - BONUS_Y_VELOCITY_AFTER_SPLIT) {
         secondSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
     }
 
@@ -844,26 +854,10 @@ bool checkBubblePlayerCollision(Bubble* bubble, Player* player) {
 }
 
 bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow) {
+    // Note: the y conditions are modified to ensure that
+    // only the tops of arrows can hit bubbles
     return (bubble->centerX + bubble->radius >= arrow->x) &&
            (bubble->centerX - bubble->radius <= arrow->x + arrow->sizeX) &&
            (bubble->centerY + bubble->radius >= arrow->y) &&
-           (bubble->centerY - bubble->radius <= arrow->y + arrow->sizeY); // Note: the y conditions are modified to ensure that
-                                                           // only the tops of arrows can hit bubbles
+           (bubble->centerY - bubble->radius <= arrow->y + arrow->sizeY);
 }
-
-/*
-/*#define ADDR_7SEG1 ((volatile long *) 0xFF200020)
-#define ADDR_7SEG2 ((volatile long *) 0xFF200030)
- int  array [10] ={ 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01100111};
-int main()
-{
-	  volatile int delay_count;	// volatile so the C compiler doesnbt remove the loop
-for(int i =0; i <10 ; i++){
-   *ADDR_7SEG1 = array[a]; 
-   *ADDR_7SEG1 = array [b]
-      for (delay_count = 2500000; delay_count != 0; --delay_count)
-	;
-}
-	
-}
-*/
