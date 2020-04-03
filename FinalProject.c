@@ -23,6 +23,8 @@
 #define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
 #define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
 
+const int HEXArray [10] ={ 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01100111};
+
 const int LEDArray[11] ={0x3FF, 0x1FF, 0xFF, 0x7F,0x3F, 0x1F, 0xF, 0x7, 0x3, 0x1, 0x0};	
 
 const int playerArray[] =
@@ -251,7 +253,7 @@ typedef struct player {
 void initializeInputIO();
 void fetchInputs(Player* player1, Player* player2);
 
-void setTimer();
+void countdownTimer ();
 
 volatile int* const LEDR_PTR = (int*) 0xFF200000;
 volatile int* const SW_PTR = (int*) 0xFF200040;
@@ -312,23 +314,15 @@ int main(void) {
     // Pointers to the player objects for the (up to) 2 players
     Player* player1;
     Player* player2;
-    int jj = 0;
-    int kk =0;
 
     initializeGame(&bubblesListHead, &player1, &player2);
 
     while (!gameOver) {
         drawScreen(bubblesListHead, player1, player2);
-        setTimer();
         fetchInputs(player1, player2);
         updateGameState(&bubblesListHead, player1, player2);
-        *LEDR_PTR = LEDArray[kk];
-		if(LEDArray[kk] == 0x0)
-        return 0;
-		jj = jj +1;
-        if (jj % 2 == 0){
-        kk = kk+1;
-    }
+        countdownTimer ();
+
     }
 
     return 0;
@@ -391,11 +385,34 @@ void fetchInputs(Player* player1, Player* player2) {
     }
 }
 
-void setTimer() {
+void countdownTimer ()
+    {
+    
+      {
+        int jj = 0;
+        int kk = 0;
+        int a = 0;
+        int b = 0;
+        *LEDR_PTR = LEDArray[kk];
+        if (LEDArray[kk] == 0x0)
+          return 0;
+        jj = jj + 1;
+        if (jj % 2 == 0)
+          {
+    	kk = kk + 1;
+    	//   if(player1hits)
+    	//a = a + 1;
+    	//// *ADDR_7SEG1 = array[a]; 
+    	//   if(player2hits)
+    	//   b=b+1;
+    	//  *ADDR_7SEG1 = array [b]
+          }
+      }
+    
+    }
 
-    *LEDR_PTR = 0x0fff;
 
-}
+
 
 //----------Graphics Function Definitions---------------
 //------------------------------------------------------
@@ -833,3 +850,20 @@ bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow) {
            (bubble->centerY - bubble->radius <= arrow->y + arrow->sizeY); // Note: the y conditions are modified to ensure that
                                                            // only the tops of arrows can hit bubbles
 }
+
+/*
+/*#define ADDR_7SEG1 ((volatile long *) 0xFF200020)
+#define ADDR_7SEG2 ((volatile long *) 0xFF200030)
+ int  array [10] ={ 0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110, 0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01100111};
+int main()
+{
+	  volatile int delay_count;	// volatile so the C compiler doesnbt remove the loop
+for(int i =0; i <10 ; i++){
+   *ADDR_7SEG1 = array[a]; 
+   *ADDR_7SEG1 = array [b]
+      for (delay_count = 2500000; delay_count != 0; --delay_count)
+	;
+}
+	
+}
+*/
