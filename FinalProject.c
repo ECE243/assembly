@@ -314,6 +314,7 @@ int main(void) {
     Player* player2;
     int jj = 0;
     int kk =0;
+
     initializeGame(&bubblesListHead, &player1, &player2);
 
     while (!gameOver) {
@@ -325,8 +326,9 @@ int main(void) {
 		if(LEDArray[kk] == 0x0)
         return 0;
 		jj = jj +1;
-        if (jj % 22 == 0){
-            kk = kk+1;
+        if (jj % 2 == 0){
+        kk = kk+1;
+    }
     }
 
     return 0;
