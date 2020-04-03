@@ -6,12 +6,13 @@
 
 #define SMALLEST_BUBBLE_RADIUS 4
 #define GRAVITATIONAL_CONSTANT 1
-#define LENGTH_OF_GAME_SECONDS 90
+#define LENGTH_OF_LEVEL_SECONDS 90
+#define NUM_LEVELS_IN_GAME 4
 #define BONUS_Y_VELOCITY_AFTER_SPLIT -3
 
 #define ARROW_SIZE_X 10
 #define ARROW_SIZE_Y 10
-#define ARROW_MOVE_SPEED 7
+#define ARROW_MOVE_SPEED 9
 
 #define PLAYER_SIZE_X 22
 #define PLAYER_SIZE_Y 30
@@ -254,8 +255,10 @@ typedef struct player {
 //----------User Input Function Declarations------------
 //------------------------------------------------------
 void initializeInputIO();
-void fetchInputs(Player* player1, Player* player2);
+void initializeTimer();
+void initializeTimerProgressBar();
 
+void fetchInputs(Player* player1, Player* player2);
 void fetchKeyboardInputs(Player* player1, Player* player2);
 void fetchTimerStatus();
 
@@ -268,7 +271,8 @@ volatile int* const A9_TIMER_PTR = (int*) 0xFFFEC600;
 //-----------Graphics Function Declarations-------------
 //------------------------------------------------------
 void initializeGraphics();
-void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2);
+void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2);
+void drawGameOverScreen();
 void clear_screen();
 
 void waiting();
@@ -283,10 +287,10 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 
 //-----------Game Logic Function Declarations-----------
 //------------------------------------------------------
-void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2);
+void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2, int currentLevel);
 void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, Player* player2);
 
-void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead);
+void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead, int currentLevel);
 Bubble* createBubble(int centerX, int centerY, int radius, int xVelocity, int yVelocity);
 
 void initializePlayer(Player** player, int x, int y);
@@ -321,13 +325,33 @@ int main(void) {
     Player* player1;
     Player* player2;
 
-    initializeGame(&bubblesListHead, &player1, &player2);
+    int currentLevel = 1;
+    while (currentLevel <= NUM_LEVELS_IN_GAME) {
+        initializeGame(&bubblesListHead, &player1, &player2, currentLevel);
 
-    while (!gameOver) {
-        drawScreen(bubblesListHead, player1, player2);
-        fetchInputs(player1, player2);
-        updateGameState(&bubblesListHead, player1, player2);
+        while (!gameOver) {
+            drawInGameScreen(bubblesListHead, player1, player2);
+            fetchInputs(player1, player2);
+            updateGameState(&bubblesListHead, player1, player2);
+        }
+
+        // If the player lost the previous level, end the game
+        if (outOfTime || wasPlayerHit) {
+            break;
+        }
+        // Otherwise, increment the level and continue running the game
+        else {
+            currentLevel++;
+
+            // Reset the timer for the next level
+            initializeTimer();
+            initializeTimerProgressBar();
+
+            gameOver = false;
+        }
     }
+
+    drawGameOverScreen();
 
     return 0;
 }
@@ -345,13 +369,9 @@ void initializeInputIO() {
 
     // A9 Private Timer Initialization
     //----------------------------------------
-    // Start the timer with a load value of 1/10 the length of the game (in clock cycles)
-    *A9_TIMER_PTR = (LENGTH_OF_GAME_SECONDS / 10) * 200000000;
-    *(A9_TIMER_PTR + 2) = 1;
+    initializeTimer();
 
-    // At the beginning, the user has the full time remaining to complete the game
-    // (i.e. all LEDs should be on to show a "full" progress bar)
-    *LEDR_PTR = 0x3FF;
+    initializeTimerProgressBar();
 }
 
 void fetchInputs(Player* player1, Player* player2) {
@@ -419,13 +439,24 @@ void fetchTimerStatus() {
             outOfTime = true;
             *(A9_TIMER_PTR + 2) = 0;
         }
-        // Otherwise, restart the timer and continue
+            // Otherwise, restart the timer and continue
         else {
-            *A9_TIMER_PTR = (LENGTH_OF_GAME_SECONDS / 10) * 200000000;
-            *(A9_TIMER_PTR + 3) = 1; // Writing 1 to the F bit resets the timer
-            *(A9_TIMER_PTR + 2) = 1; // Enable it so it continues counting
+            initializeTimer();
         }
     }
+}
+
+void initializeTimer() {
+    // Start the timer with a load value of 1/10 the length of the game (in clock cycles)
+    *A9_TIMER_PTR = (LENGTH_OF_LEVEL_SECONDS / 10) * 200000000;
+    *(A9_TIMER_PTR + 3) = 1; // Writing 1 to the F bit resets the timer
+    *(A9_TIMER_PTR + 2) = 1; // Enable it so it continues counting
+}
+
+void initializeTimerProgressBar() {
+    // At the beginning, the user has the full time remaining to complete the game
+    // (i.e. all LEDs should be on to show a "full" progress bar)
+    *LEDR_PTR = 0x3FF;
 }
 
 //----------Graphics Function Definitions---------------
@@ -436,7 +467,7 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2) {
+void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2) {
     const BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
         drawBubble(currentListItem->bubbleData, 0x07E0);
@@ -470,6 +501,10 @@ void drawScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player
     if (!player2->readyToShootArrow) {
         drawArrow(player2->shootingArrow, true);
     }
+}
+
+void drawGameOverScreen() {
+
 }
 
 void clear_screen() {
@@ -595,18 +630,30 @@ void drawBubble(const Bubble* bubble, short int color) {
 
 //----------Game Logic Function Definitions-------------
 //------------------------------------------------------
-void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2) {
-    initializeBubblesList(pBubblesListHead);
+void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2, int currentLevel) {
+    initializeBubblesList(pBubblesListHead, currentLevel);
 
     initializePlayer(player1, (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER_SIZE_Y);
     initializePlayer(player2, 2 * (SCREEN_SIZE_X / 3) - (PLAYER_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER_SIZE_Y);
 }
 
-void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead) {
+void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead, int currentLevel) {
     *pBubblesListHead = NULL;
 
-    for (int i = 0; i < 1; i++) {
-        addBubbleToEndOfList(pBubblesListHead, createBubble(50 * (i + 1), 50, 32, 1, 0));
+    if (currentLevel == 1) {
+        // Add one bubble on the screen that is of "moderate size" (it has a horizontal velocity component)
+        addBubbleToEndOfList(pBubblesListHead, createBubble(50, 50, 16, 1, 0));
+    } else if (currentLevel == 2) {
+        // Add two bubbles of the same size as before on the screen, with no horizontal velocity component
+        addBubbleToEndOfList(pBubblesListHead, createBubble(50, 50, 16, 0, 0));
+        addBubbleToEndOfList(pBubblesListHead, createBubble(SCREEN_SIZE_X - 50, 50, 16, 0, 0));
+    } else if (currentLevel == 3) {
+        // Add one bubble on the screen that is larger than the previous ones (it has a horizontal velocity component)
+        addBubbleToEndOfList(pBubblesListHead, createBubble(50, 50, 32, 1, 0));
+    } else {
+        // Add two bubbles of the same size as before on the screen, only one of which has a horizontal velocity component
+        addBubbleToEndOfList(pBubblesListHead, createBubble(50, 50, 32, 1, 0));
+        addBubbleToEndOfList(pBubblesListHead, createBubble(SCREEN_SIZE_X - 50, 50, 32, 0, 0));
     }
 }
 
@@ -670,7 +717,7 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
             if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
                 breakBubble(current);
             }
-            // Otherwise, simply destroy it
+                // Otherwise, simply destroy it
             else {
                 removeBubbleFromList(pBubblesListHead, current->bubbleData);
                 // If that was the last bubble, the game is over
@@ -689,7 +736,7 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
             if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
                 breakBubble(current);
             }
-            // Otherwise, simply destroy it
+                // Otherwise, simply destroy it
             else {
                 removeBubbleFromList(pBubblesListHead, current->bubbleData);
                 // If that was the last bubble, the game is over
@@ -794,19 +841,26 @@ void breakBubble(BubbleLinkedListItem* bubbleToBreakListItem) {
     // 2) Push them a bit in opposite directions along the x-axis (to create some separation from each
     //    other after the split)
     // 3) Ensure that the two duplicates move in opposite directions along the x-axis after the split
-    // 4) Give each bubble a "bonus y-push" to award the player for the split (but only if it is moving down,
+    // 4) Give each of the broken bubbles a "bonus y-push" to award the player for the split (but only if it is moving down,
     //    fast enough, since if it is moving up and we push it further up, it will move faster than
     //    before (more kinetic energy) and that wouldn't be a bonus)
 
+    if (firstSplitBubble->xVelocity == 0) {
+        firstSplitBubble->xVelocity = 1;
+    }
     firstSplitBubble->centerX += firstSplitBubble->xVelocity;
     firstSplitBubble->radius /= 2;
     if (firstSplitBubble->yVelocity >= - BONUS_Y_VELOCITY_AFTER_SPLIT) {
         firstSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
     }
 
-    secondSplitBubble->centerX -= secondSplitBubble->xVelocity;
+    if (secondSplitBubble->xVelocity == 0) {
+        secondSplitBubble->xVelocity = -1;
+    } else {
+        secondSplitBubble->xVelocity = -secondSplitBubble->xVelocity;
+    }
+    secondSplitBubble->centerX += secondSplitBubble->xVelocity;
     secondSplitBubble->radius /= 2;
-    secondSplitBubble->xVelocity = -secondSplitBubble->xVelocity;
     if (secondSplitBubble->yVelocity >= - BONUS_Y_VELOCITY_AFTER_SPLIT) {
         secondSplitBubble->yVelocity += BONUS_Y_VELOCITY_AFTER_SPLIT;
     }
