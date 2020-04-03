@@ -247,6 +247,8 @@ typedef struct player {
 
     bool readyToShootArrow;
     Arrow* shootingArrow;
+
+    int score;
 } Player;
 
 //----------User Input Function Declarations------------
@@ -306,6 +308,8 @@ bool checkBubblePlayerCollision(Bubble* bubble, Player* player);
 bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow);
 
 bool gameOver = false;
+bool outOfTime = false;
+bool wasPlayerHit = false;
 
 int main(void) {
     initializeGraphics();
@@ -412,6 +416,7 @@ void fetchTimerStatus() {
         // If time is up, end the game and disable the timer
         if (*LEDR_PTR == 0) {
             gameOver = true;
+            outOfTime = true;
             *(A9_TIMER_PTR + 2) = 0;
         }
         // Otherwise, restart the timer and continue
@@ -422,7 +427,6 @@ void fetchTimerStatus() {
         }
     }
 }
-
 
 //----------Graphics Function Definitions---------------
 //------------------------------------------------------
@@ -632,6 +636,8 @@ void initializePlayer(Player** player, int x, int y) {
     (*player)->readyToShootArrow = true;
     (*player)->shootingArrow = (Arrow*) malloc(sizeof(Arrow));
     initializePlayerShootingArrow(*player);
+
+    (*player)->score = 0;
 }
 
 void initializePlayerShootingArrow(Player* player) {
@@ -653,14 +659,21 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
         if (checkBubblePlayerCollision(current->bubbleData, player1) ||
             checkBubblePlayerCollision(current->bubbleData, player2)) {
             gameOver = true;
+            wasPlayerHit = true;
             break;
         }
 
         if (!player1->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player1->shootingArrow)) {
+            player1->score++; // Reward player1 for hitting the bubble
+
+            // If the bubble is big enough to be broken further, split it into two bubbles
             if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
                 breakBubble(current);
-            } else {
+            }
+            // Otherwise, simply destroy it
+            else {
                 removeBubbleFromList(pBubblesListHead, current->bubbleData);
+                // If that was the last bubble, the game is over
                 if (*pBubblesListHead == NULL) {
                     gameOver = true;
                     break;
@@ -670,10 +683,16 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
         }
 
         if (!player2->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player2->shootingArrow)) {
+            player2->score++; // Reward player2 for hitting the bubble
+
+            // If the bubble is big enough to be broken further, split it into two bubbles
             if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
                 breakBubble(current);
-            } else {
+            }
+            // Otherwise, simply destroy it
+            else {
                 removeBubbleFromList(pBubblesListHead, current->bubbleData);
+                // If that was the last bubble, the game is over
                 if (*pBubblesListHead == NULL) {
                     gameOver = true;
                     break;
