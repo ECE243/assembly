@@ -23,6 +23,8 @@
 #define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
 #define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
 
+const int LEDArray[11] ={0x3FF, 0x1FF, 0xFF, 0x7F,0x3F, 0x1F, 0xF, 0x7, 0x3, 0x1, 0x0};	
+
 const int playerArray[] =
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x8b, 0x93, 0x05, 0x29, 0xa7, 0x62, 0x07, 0x8c, 0x67, 0x94,
@@ -310,7 +312,8 @@ int main(void) {
     // Pointers to the player objects for the (up to) 2 players
     Player* player1;
     Player* player2;
-
+    int jj = 0;
+    int kk =0;
     initializeGame(&bubblesListHead, &player1, &player2);
 
     while (!gameOver) {
@@ -318,6 +321,12 @@ int main(void) {
         setTimer();
         fetchInputs(player1, player2);
         updateGameState(&bubblesListHead, player1, player2);
+        *LEDR_PTR = LEDArray[kk];
+		if(LEDArray[kk] == 0x0)
+        return 0;
+		jj = jj +1;
+        if (jj % 22 == 0){
+            kk = kk+1;
     }
 
     return 0;
