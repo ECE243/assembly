@@ -47001,40 +47001,4 @@ bool checkArrowBubbleCollision(Bubble* bubble, Arrow* arrow) {
 	return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
 }
 
-/*
-	volatile int* audio_ptr = (int*)0xFF203040;
-	int fifospace;
-	int record = 0, play = 0, buffer_index = 0;
-	int left_buffer[BUF_SIZE];
-	int right_buffer[BUF_SIZE];
-	record = 0;
-	play = 0;
-
-
-
-void audio(){
-			fifospace =*(audio_ptr + 1); // read the audio port fifospace register
-			if ((fifospace & 0x00FF0000) > BUF_THRESHOLD) // check WSRC
-			{
-				// output data until the buffer is empty or the audio-out FIFO
-				// is full
-				float x = (900 * 3.14159 * 2) / 40000;
-				float acc = 0;
-
-				while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE)) {
-					acc += x;
-					*(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);//(int)(sin(acc) * 10000000000);
-					*(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-					++buffer_index;
-					if (buffer_index == BUF_SIZE) {
-						// done playback
-						play = 0;
-					}
-					fifospace = *(audio_ptr + 1); // read the audio port fifospace register
-				}
-			}
-		}
-	
-	*/
-
 
