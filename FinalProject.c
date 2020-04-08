@@ -46582,33 +46582,7 @@ void drawPlayer(const Player* player, bool erase) {
 
 }
 
-void cls() {
 
-    int i = 0, j = 0;
-
-    for (int k = 0; k < 320 * 2 * 240 - 1; k += 2) {
-
-
-        int red = ((endScreen[k + 1] & 0xF8) >> 3) << 11;
-        int green = (((endScreen[k] & 0xE0) >> 5)) | ((endScreen[k + 1] & 0x7) << 3);
-
-        int blue = (endScreen[k] & 0x1f);
-
-        short int p = red | ((green << 5) | blue);
-
-        plot_pixel(0 + i, j, p);
-
-        i += 1;
-        if (i == 320) {
-            i = 0;
-            j += 1;
-        }
-
-    }
-
-//153600
-
-}
 
 
 void drawPlayerAgain(const Player* player, bool erase) {
