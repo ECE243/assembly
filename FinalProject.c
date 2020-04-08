@@ -48248,22 +48248,23 @@ float map(float value, float istart, float istop, float ostart, float ostop)
     return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
 }
 
-void audio(){
-            {
-            fifospace = *(audio_ptr + 1);
-            if ((fifospace & 0x00FF0000) > BUF_THRESHOLD)
-            {
+void audio()
+{
+    {
+        fifospace = *(audio_ptr + 1);
+        if ((fifospace & 0x00FF0000) > BUF_THRESHOLD)
+        {
 
-                float x = (900 * 3.14159 * 2) / 40000;
-                float acc = 0;
-                while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE))
-                {
-                    acc += x;
-                    *(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-                    *(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-                    ++buffer_index;
-                    fifospace = *(audio_ptr + 1);
-                }
+            float x = (900 * 3.14159 * 2) / 40000;
+            float acc = 0;
+            while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE))
+            {
+                acc += x;
+                *(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
+                *(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
+                ++buffer_index;
+                fifospace = *(audio_ptr + 1);
             }
         }
+    }
 }
