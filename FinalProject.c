@@ -24,6 +24,7 @@
 #define PLAYER2_MOVE_LEFT_KEYBOARD_CODE 0x6B
 #define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
 #define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
+int buffer_index = 0;
 const int sadNaruto[6] = {20041, 21321, 14, 24908, 14389, 11833};
 #define BUF_SIZE 55539   // about 10 seconds of buffer (@ 8K samples/sec)
 #define BUF_THRESHOLD 96 // 75% of 128 word buffer
@@ -47453,7 +47454,6 @@ int main(void)
     int jj = 0;
     int kk = 0;
     volatile int *audio_ptr = (int *)0xFF203040;
-    int buffer_index = 0;
     int fifospace;
 
     int currentLevel = 1;
@@ -47489,23 +47489,7 @@ int main(void)
     drawGameOverScreen();
     while (1)
     {
-        {
-            fifospace = *(audio_ptr + 1);
-            if ((fifospace & 0x00FF0000) > BUF_THRESHOLD)
-            {
-
-                float x = (900 * 3.14159 * 2) / 40000;
-                float acc = 0;
-                while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE))
-                {
-                    acc += x;
-                    *(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-                    *(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-                    ++buffer_index;
-                    fifospace = *(audio_ptr + 1);
-                }
-            }
-        }
+        void audio();
     }
 
     return 0;
@@ -48262,4 +48246,24 @@ bool checkArrowBubbleCollision(Bubble *bubble, Arrow *arrow)
 float map(float value, float istart, float istop, float ostart, float ostop)
 {
     return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+}
+
+void audio(){
+            {
+            fifospace = *(audio_ptr + 1);
+            if ((fifospace & 0x00FF0000) > BUF_THRESHOLD)
+            {
+
+                float x = (900 * 3.14159 * 2) / 40000;
+                float acc = 0;
+                while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE))
+                {
+                    acc += x;
+                    *(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
+                    *(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
+                    ++buffer_index;
+                    fifospace = *(audio_ptr + 1);
+                }
+            }
+        }
 }
