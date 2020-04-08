@@ -47512,7 +47512,7 @@ int main(void)
             drawInGameScreen(bubblesListHead, player1, player2);
             fetchInputs(player1, player2);
             updateGameState(&bubblesListHead, player1, player2);
-        }
+                }
 
         // If the player lost the previous level, end the game
         if (outOfTime || wasPlayerHit)
@@ -48331,20 +48331,13 @@ void audio()
 {
     {
         fifospace = *(audio_ptr + 1);
-        if ((fifospace & 0x00FF0000) > BUF_THRESHOLD)
-        {
 
-            float x = (900 * 3.14159 * 2) / 40000;
-            float acc = 0;
-            while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE))
-            {
-                acc += x;
-                *(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-                *(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
-                ++buffer_index;
-                fifospace = *(audio_ptr + 1);
-            }
+        while ((fifospace & 0x00FF0000) && (buffer_index < BUF_SIZE))
+        {
+            *(audio_ptr + 2) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
+            *(audio_ptr + 3) = (int)map(bob[buffer_index], -32767, 32767, 0, 2000000000);
+            ++buffer_index;
+            fifospace = *(audio_ptr + 1);
         }
     }
 }
-//b
