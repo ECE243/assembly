@@ -178,9 +178,9 @@ int main(void) {
     Player* player2;
 
     drawStartScreen();
-    clear_screen();
-
     waitForStartKeyPress();
+
+    clear_screen();
 
     int currentLevel = 1;
     while (currentLevel <= NUM_LEVELS_IN_GAME) {
