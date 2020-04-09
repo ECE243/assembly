@@ -182,8 +182,8 @@ int main(void) {
     // The list of all the bouncing bubbles
     BubbleLinkedListItem* bubblesListHead;
     // Pointers to the player objects for the (up to) 2 players
-    Player* player1;
-    Player* player2;
+    Player* player1 = NULL;
+    Player* player2 = NULL;
 
     drawStartScreen();
     waitForStartKeyPress();
@@ -718,7 +718,12 @@ Bubble* createBubble(int centerX, int centerY, int radius, int xVelocity, int yV
 }
 
 void initializePlayer(Player** player, int x, int y, int sizeX, int sizeY, const int* pixelData) {
-    *player = (Player*) malloc(sizeof(Player));
+    bool createFromScratch = false;
+
+    if (*player == NULL) {
+        *player = (Player*) malloc(sizeof(Player));
+        createFromScratch = true;
+    }
     (*player)->x = x;
     (*player)->y = y;
     (*player)->sizeX = sizeX;
@@ -732,7 +737,9 @@ void initializePlayer(Player** player, int x, int y, int sizeX, int sizeY, const
     (*player)->shootingArrow = (Arrow*) malloc(sizeof(Arrow));
     initializePlayerShootingArrow(*player);
 
-    (*player)->score = 0;
+    if (createFromScratch) {
+        (*player)->score = 0;
+    }
 
     (*player)->playerPixelData = pixelData;
 }
