@@ -229,6 +229,7 @@ int main(void) {
         }
     }
 
+    clear_screen();
     drawGameOverScreen();
     if (outOfTime == false && wasPlayerHit == false) {
         drawYouWin();
