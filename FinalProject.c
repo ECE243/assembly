@@ -463,8 +463,9 @@ void initializeGraphics()
 void drawInGameScreen(const BubbleLinkedListItem *bubbleListHead, const Player *player1, const Player *player2,
                       int currentLevel)
 {
-
+    // this code is for all the initial conditions drawing,the players are drawn, the ball is drawn, the arrows will be drawn if shooting trigger is enabled
     const BubbleLinkedListItem *currentListItem = bubbleListHead;
+    // code for drawing the ball
     while (currentListItem != NULL)
     {
         drawBubble(currentListItem->bubbleData, 0x07E0);
@@ -484,7 +485,7 @@ void drawInGameScreen(const BubbleLinkedListItem *bubbleListHead, const Player *
     }
 
     waiting();
-
+    // this is for erasing, what has been drawen
     currentListItem = bubbleListHead;
     while (currentListItem != NULL)
     {
@@ -504,27 +505,27 @@ void drawInGameScreen(const BubbleLinkedListItem *bubbleListHead, const Player *
         drawArrow(player2->shootingArrow, true);
     }
 }
-
+// all the drawing, uses 565 rgb to traverse through the array, gets the r b and g values, put them in plot pixel to draw it.
 void drawStartScreen()
 {
-    int i = 0, j = 0;
+    int xCord = 0, yCord = 0;
 
-    for (int k = 0; k < 320 * 2 * 240 - 1; k += 2)
+    for (int size = 0; size < 320 * 2 * 240 - 1; size += 2)
     {
-        int red = ((START_SCREEN_PIXEL_DATA[k + 1] & 0xF8) >> 3) << 11;
-        int green = (((START_SCREEN_PIXEL_DATA[k] & 0xE0) >> 5)) | ((START_SCREEN_PIXEL_DATA[k + 1] & 0x7) << 3);
+        int red = ((START_SCREEN_PIXEL_DATA[size + 1] & 0xF8) >> 3) << 11;
+        int green = (((START_SCREEN_PIXEL_DATA[size] & 0xE0) >> 5)) | ((START_SCREEN_PIXEL_DATA[size + 1] & 0x7) << 3);
 
-        int blue = (START_SCREEN_PIXEL_DATA[k] & 0x1f);
+        int blue = (START_SCREEN_PIXEL_DATA[size] & 0x1f);
 
-        short int p = red | ((green << 5) | blue);
+        short int rbg = red | ((green << 5) | blue);
 
-        plot_pixel(i, j, p);
+        plot_pixel(xCord, yCord, rbg);
 
-        i += 1;
-        if (i == 320)
+        xCord += 1;
+        if (xCord == 320)
         {
-            i = 0;
-            j += 1;
+            xCord = 0;
+            yCord += 1;
         }
     }
 }
@@ -533,26 +534,26 @@ void drawGameOverScreen()
 {
     {
 
-        int i = 120, j = 120;
+        int xCord = 120, yCord = 120;
 
-        for (int k = 0; k < 80 * 2 * 38 - 1; k += 2)
+        for (int size = 0; size < 80 * 2 * 38 - 1; size += 2)
         {
 
-            int red = ((GAME_OVER_SCREEN_PIXEL_DATA[k + 1] & 0xF8) >> 3) << 11;
-            int green = (((GAME_OVER_SCREEN_PIXEL_DATA[k] & 0xE0) >> 5)) |
-                        ((GAME_OVER_SCREEN_PIXEL_DATA[k + 1] & 0x7) << 3);
+            int red = ((GAME_OVER_SCREEN_PIXEL_DATA[size + 1] & 0xF8) >> 3) << 11;
+            int green = (((GAME_OVER_SCREEN_PIXEL_DATA[size] & 0xE0) >> 5)) |
+                        ((GAME_OVER_SCREEN_PIXEL_DATA[size + 1] & 0x7) << 3);
 
-            int blue = (GAME_OVER_SCREEN_PIXEL_DATA[k] & 0x1f);
+            int blue = (GAME_OVER_SCREEN_PIXEL_DATA[size] & 0x1f);
 
-            short int p = red | ((green << 5) | blue);
+            short int rbg = red | ((green << 5) | blue);
 
-            plot_pixel(i, j, p);
+            plot_pixel(xCord, yCord, rbg);
 
-            i += 1;
-            if (i == 200)
+            xCord += 1;
+            if (xCord == 200)
             {
-                i = 120;
-                j += 1;
+                xCord = 120;
+                yCord += 1;
             }
         }
 
@@ -564,25 +565,25 @@ void drawLevel(const int *array)
 {
     {
 
-        int i = 120, j = 30;
+        int xCord = 120, yCord = 30;
 
-        for (int k = 0; k < 78 * 2 * 28 - 1; k += 2)
+        for (int size = 0; size < 78 * 2 * 28 - 1; size += 2)
         {
 
-            int red = ((array[k + 1] & 0xF8) >> 3) << 11;
-            int green = (((array[k] & 0xE0) >> 5)) | ((array[k + 1] & 0x7) << 3);
+            int red = ((array[size + 1] & 0xF8) >> 3) << 11;
+            int green = (((array[size] & 0xE0) >> 5)) | ((array[size + 1] & 0x7) << 3);
 
-            int blue = (array[k] & 0x1f);
+            int blue = (array[size] & 0x1f);
 
-            short int p = red | ((green << 5) | blue);
+            short int rbg = red | ((green << 5) | blue);
 
-            plot_pixel(i, j, p);
+            plot_pixel(xCord, yCord, rbg);
 
-            i += 1;
-            if (i == 198)
+            xCord += 1;
+            if (xCord == 198)
             {
-                i = 120;
-                j += 1;
+                xCord = 120;
+                yCord += 1;
             }
         }
     }
@@ -593,25 +594,25 @@ void drawYouWin()
 
     {
 
-        int i = 125, j = 101;
+        int xCord = 125, yCord = 101;
 
-        for (int k = 0; k < 80 * 2 * 38 - 1; k += 2)
+        for (int size = 0; size < 80 * 2 * 38 - 1; size += 2)
         {
 
-            int red = ((WINNING_TEXT_PIXEL_DATA[k + 1] & 0xF8) >> 3) << 11;
-            int green = (((WINNING_TEXT_PIXEL_DATA[k] & 0xE0) >> 5)) | ((WINNING_TEXT_PIXEL_DATA[k + 1] & 0x7) << 3);
+            int red = ((WINNING_TEXT_PIXEL_DATA[size + 1] & 0xF8) >> 3) << 11;
+            int green = (((WINNING_TEXT_PIXEL_DATA[size] & 0xE0) >> 5)) | ((WINNING_TEXT_PIXEL_DATA[size + 1] & 0x7) << 3);
 
-            int blue = (WINNING_TEXT_PIXEL_DATA[k] & 0x1f);
+            int blue = (WINNING_TEXT_PIXEL_DATA[size] & 0x1f);
 
-            short int p = red | ((green << 5) | blue);
+            short int rbg = red | ((green << 5) | blue);
 
-            plot_pixel(i, j, p);
+            plot_pixel(xCord, yCord, rbg);
 
-            i += 1;
-            if (i == 195)
+            xCord += 1;
+            if (xCord == 195)
             {
-                i = 125;
-                j += 1;
+                xCord = 125;
+                yCord += 1;
             }
         }
 
