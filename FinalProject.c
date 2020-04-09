@@ -238,8 +238,7 @@ int main(void) {
         while (1) {
             playGameEndAudio(LOSING_MUSIC_DATA, LOSING_MUSIC_DATA_SIZE);
         }
-    }
-    else {
+    } else {
         drawYouWin();
         audio_buffer_index = 0;
         while (1) {
@@ -416,14 +415,12 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawInGameScreen(const BubbleLinkedListItem *bubbleListHead, const Player *player1, const Player *player2,
-                      int currentLevel)
-{
+void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2,
+                      int currentLevel) {
     // this code is for all the initial conditions drawing,the players are drawn, the ball is drawn, the arrows will be drawn if shooting trigger is enabled
-    const BubbleLinkedListItem *currentListItem = bubbleListHead;
+    const BubbleLinkedListItem* currentListItem = bubbleListHead;
     // code for drawing the ball
-    while (currentListItem != NULL)
-    {
+    while (currentListItem != NULL) {
         drawBubble(currentListItem->bubbleData, 0x07E0);
         currentListItem = currentListItem->next;
     }
@@ -456,13 +453,12 @@ void drawInGameScreen(const BubbleLinkedListItem *bubbleListHead, const Player *
         drawArrow(player2->shootingArrow, true);
     }
 }
+
 // all the drawing, uses 565 rgb to traverse through the array, gets the r b and g values, put them in plot pixel to draw it.
-void drawStartScreen()
-{
+void drawStartScreen() {
     int xCord = 0, yCord = 0;
 
-    for (int size = 0; size < 320 * 2 * 240 - 1; size += 2)
-    {
+    for (int size = 0; size < 320 * 2 * 240 - 1; size += 2) {
         int red = ((START_SCREEN_PIXEL_DATA[size + 1] & 0xF8) >> 3) << 11;
         int green = (((START_SCREEN_PIXEL_DATA[size] & 0xE0) >> 5)) | ((START_SCREEN_PIXEL_DATA[size + 1] & 0x7) << 3);
 
@@ -473,8 +469,7 @@ void drawStartScreen()
         plot_pixel(xCord, yCord, rbg);
 
         xCord += 1;
-        if (xCord == 320)
-        {
+        if (xCord == 320) {
             xCord = 0;
             yCord += 1;
         }
@@ -486,8 +481,7 @@ void drawGameOverScreen() {
 
         int xCord = 120, yCord = 120;
 
-        for (int size = 0; size < 80 * 2 * 38 - 1; size += 2)
-        {
+        for (int size = 0; size < 80 * 2 * 38 - 1; size += 2) {
 
             int red = ((GAME_OVER_SCREEN_PIXEL_DATA[size + 1] & 0xF8) >> 3) << 11;
             int green = (((GAME_OVER_SCREEN_PIXEL_DATA[size] & 0xE0) >> 5)) |
@@ -500,8 +494,7 @@ void drawGameOverScreen() {
             plot_pixel(xCord, yCord, rbg);
 
             xCord += 1;
-            if (xCord == 200)
-            {
+            if (xCord == 200) {
                 xCord = 120;
                 yCord += 1;
             }
@@ -516,8 +509,7 @@ void drawLevel(const int* array) {
 
         int xCord = 120, yCord = 30;
 
-        for (int size = 0; size < 78 * 2 * 28 - 1; size += 2)
-        {
+        for (int size = 0; size < 78 * 2 * 28 - 1; size += 2) {
 
             int red = ((array[size + 1] & 0xF8) >> 3) << 11;
             int green = (((array[size] & 0xE0) >> 5)) | ((array[size + 1] & 0x7) << 3);
@@ -529,8 +521,7 @@ void drawLevel(const int* array) {
             plot_pixel(xCord, yCord, rbg);
 
             xCord += 1;
-            if (xCord == 198)
-            {
+            if (xCord == 198) {
                 xCord = 120;
                 yCord += 1;
             }
@@ -544,11 +535,11 @@ void drawYouWin() {
 
         int xCord = 125, yCord = 101;
 
-        for (int size = 0; size < 80 * 2 * 38 - 1; size += 2)
-        {
+        for (int size = 0; size < 80 * 2 * 38 - 1; size += 2) {
 
             int red = ((WINNING_TEXT_PIXEL_DATA[size + 1] & 0xF8) >> 3) << 11;
-            int green = (((WINNING_TEXT_PIXEL_DATA[size] & 0xE0) >> 5)) | ((WINNING_TEXT_PIXEL_DATA[size + 1] & 0x7) << 3);
+            int green =
+                    (((WINNING_TEXT_PIXEL_DATA[size] & 0xE0) >> 5)) | ((WINNING_TEXT_PIXEL_DATA[size + 1] & 0x7) << 3);
 
             int blue = (WINNING_TEXT_PIXEL_DATA[size] & 0x1f);
 
@@ -557,8 +548,7 @@ void drawYouWin() {
             plot_pixel(xCord, yCord, rbg);
 
             xCord += 1;
-            if (xCord == 195)
-            {
+            if (xCord == 195) {
                 xCord = 125;
                 yCord += 1;
             }
