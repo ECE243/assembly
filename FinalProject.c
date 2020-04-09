@@ -11,6 +11,7 @@
 #define LENGTH_OF_LEVEL_SECONDS 90
 #define NUM_LEVELS_IN_GAME 4   // Maximum is 4 (but can be configured to any number below that)
 #define BONUS_Y_VELOCITY_AFTER_SPLIT -3
+#define NUM_PLAYERS 2          // Must be either 1 or 2
 
 #define ARROW_SIZE_X 10
 #define ARROW_SIZE_Y 10
@@ -40,7 +41,6 @@ const int WINNING_TEXT_PIXEL_DATA[];
 
 const int FIRST_PLAYER_PIXEL_DATA[];
 const int SECOND_PLAYER_PIXEL_DATA[];
-const int sadNaruto[];
 const int ARROW_PIXEL_DATA[];
 
 const int LEVEL_ONE_TEXT_PIXEL_DATA[];
@@ -106,6 +106,7 @@ typedef struct player {
 void initializeIODevices();
 void initializeTimer();
 void initializeTimerProgressBar();
+void initializeHEXDisplays();
 
 void updateIODevices(Player* player1, Player* player2);
 void fetchKeyboardInputs(Player* player1, Player* player2);
@@ -115,7 +116,7 @@ void updateHEXDisplays(Player* player1, Player* player2);
 void waitForStartKeyPress();
 
 float converter(float data, float startingPointOne, float stoppingPointOne, float StartingPointTwo, float stoppingPointTwo);
-void playGameEndAudio();
+void playGameEndAudio(const int* musicData, int lengthOfMusic);
 
 volatile int* const LEDR_PTR = (int*) 0xFF200000;
 volatile int* const HEX_PORT1_PTR = (int*) 0xFF200020;
@@ -150,7 +151,7 @@ volatile int* const pixel_ctrl_ptr = (int*) 0xFF203020;
 //------------------------------------------------------
 void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, Player** player2, int currentLevel);
 void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, Player* player2);
-void initializeHEXDisplays();
+
 void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead, int currentLevel);
 Bubble* createBubble(int centerX, int centerY, int radius, int xVelocity, int yVelocity);
 void initializePlayer(Player** player, int x, int y, int sizeX, int sizeY, const int* pixelData);
@@ -271,7 +272,9 @@ void initializeIODevices() {
 
 void initializeHEXDisplays() {
     *HEX_PORT1_PTR = HEX_DISPLAY_DATA[0];
-    *HEX_PORT2_PTR = HEX_DISPLAY_DATA[0];
+    if (NUM_PLAYERS == 2) {
+        *HEX_PORT2_PTR = HEX_DISPLAY_DATA[0];
+    }
 }
 
 void initializeTimer() {
@@ -327,11 +330,11 @@ void fetchKeyboardInputs(Player* player1, Player* player2) {
             player1->requestMoveRight = !isBreakCode;
         } else if (pressedKeyCode == PLAYER1_SHOOT_KEYBOARD_CODE) {
             player1->requestShoot = !isBreakCode;
-        } else if (pressedKeyCode == PLAYER2_MOVE_LEFT_KEYBOARD_CODE) {
+        } else if (NUM_PLAYERS == 2 && pressedKeyCode == PLAYER2_MOVE_LEFT_KEYBOARD_CODE) {
             player2->requestMoveLeft = !isBreakCode;
-        } else if (pressedKeyCode == PLAYER2_MOVE_RIGHT_KEYBOARD_CODE) {
+        } else if (NUM_PLAYERS == 2 && pressedKeyCode == PLAYER2_MOVE_RIGHT_KEYBOARD_CODE) {
             player2->requestMoveRight = !isBreakCode;
-        } else if (pressedKeyCode == PLAYER2_SHOOT_KEYBOARD_CODE) {
+        } else if (NUM_PLAYERS == 2 && pressedKeyCode == PLAYER2_SHOOT_KEYBOARD_CODE) {
             player2->requestShoot = !isBreakCode;
         }
 
@@ -362,7 +365,9 @@ void fetchTimerStatus() {
 
 void updateHEXDisplays(Player* player1, Player* player2) {
     *HEX_PORT1_PTR = (HEX_DISPLAY_DATA[player1->score / 10] << 8) | HEX_DISPLAY_DATA[player1->score % 10];
-    *HEX_PORT2_PTR = (HEX_DISPLAY_DATA[player2->score / 10] << 8) | HEX_DISPLAY_DATA[player2->score % 10];
+    if (NUM_PLAYERS == 2) {
+        *HEX_PORT2_PTR = (HEX_DISPLAY_DATA[player2->score / 10] << 8) | HEX_DISPLAY_DATA[player2->score % 10];
+    }
 }
 
 void waitForStartKeyPress() {
@@ -427,32 +432,43 @@ void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* 
         currentListItem = currentListItem->next;
     }
     drawPlayer(player1, false);
-    drawPlayer(player2, false);
+    if (NUM_PLAYERS == 2) {
+        drawPlayer(player2, false);
+    }
 
     if (!player1->readyToShootArrow) {
         drawArrow(player1->shootingArrow, false);
     }
 
-    if (!player2->readyToShootArrow) {
-        drawArrow(player2->shootingArrow, false);
+    if (NUM_PLAYERS == 2) {
+        if (!player2->readyToShootArrow) {
+            drawArrow(player2->shootingArrow, false);
+        }
     }
 
+
     waiting();
-    // this is for erasing, what has been drawen
+    // this is for erasing, what has been drawn
     currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
         drawBubble(currentListItem->bubbleData, 0x0000);
         currentListItem = currentListItem->next;
     }
+
     drawPlayer(player1, true);
-    drawPlayer(player2, true);
+
+    if (NUM_PLAYERS == 2) {
+        drawPlayer(player2, true);
+    }
 
     if (!player1->readyToShootArrow) {
         drawArrow(player1->shootingArrow, true);
     }
 
-    if (!player2->readyToShootArrow) {
-        drawArrow(player2->shootingArrow, true);
+    if (NUM_PLAYERS == 2) {
+        if (!player2->readyToShootArrow) {
+            drawArrow(player2->shootingArrow, true);
+        }
     }
 }
 
@@ -683,8 +699,11 @@ void initializeGame(BubbleLinkedListItem** pBubblesListHead, Player** player1, P
 
     initializePlayer(player1, (SCREEN_SIZE_X / 3) - (PLAYER1_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER1_SIZE_Y,
                      PLAYER1_SIZE_X, PLAYER2_SIZE_Y, FIRST_PLAYER_PIXEL_DATA);
-    initializePlayer(player2, 2 * (SCREEN_SIZE_X / 3) - (PLAYER1_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER1_SIZE_Y,
-                     PLAYER2_SIZE_X, PLAYER2_SIZE_Y, SECOND_PLAYER_PIXEL_DATA);
+
+    if (NUM_PLAYERS == 2) {
+        initializePlayer(player2, 2 * (SCREEN_SIZE_X / 3) - (PLAYER1_SIZE_X / 2), SCREEN_SIZE_Y - PLAYER1_SIZE_Y,
+                         PLAYER2_SIZE_X, PLAYER2_SIZE_Y, SECOND_PLAYER_PIXEL_DATA);
+    }
 }
 
 void initializeBubblesList(BubbleLinkedListItem** pBubblesListHead, int currentLevel) {
@@ -762,8 +781,7 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
         moveBubble(current->bubbleData);
         bounceBubbleOffScreen(current->bubbleData);
 
-        if (checkBubblePlayerCollision(current->bubbleData, player1) ||
-            checkBubblePlayerCollision(current->bubbleData, player2)) {
+        if (checkBubblePlayerCollision(current->bubbleData, player1) || (NUM_PLAYERS == 2 && checkBubblePlayerCollision(current->bubbleData, player2))) {
             gameOver = true;
             wasPlayerHit = true;
             break;
@@ -788,23 +806,25 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
             resetPlayerArrow(player1);
         }
 
-        if (!player2->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player2->shootingArrow)) {
-            player2->score++; // Reward player2 for hitting the bubble
+        if (NUM_PLAYERS == 2) {
+            if (!player2->readyToShootArrow && checkArrowBubbleCollision(current->bubbleData, player2->shootingArrow)) {
+                player2->score++; // Reward player2 for hitting the bubble
 
-            // If the bubble is big enough to be broken further, split it into two bubbles
-            if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
-                breakBubble(current);
-            }
-                // Otherwise, simply destroy it
-            else {
-                removeBubbleFromList(pBubblesListHead, current->bubbleData);
-                // If that was the last bubble, the game is over
-                if (*pBubblesListHead == NULL) {
-                    gameOver = true;
-                    break;
+                // If the bubble is big enough to be broken further, split it into two bubbles
+                if (current->bubbleData->radius > SMALLEST_BUBBLE_RADIUS) {
+                    breakBubble(current);
                 }
+                    // Otherwise, simply destroy it
+                else {
+                    removeBubbleFromList(pBubblesListHead, current->bubbleData);
+                    // If that was the last bubble, the game is over
+                    if (*pBubblesListHead == NULL) {
+                        gameOver = true;
+                        break;
+                    }
+                }
+                resetPlayerArrow(player2);
             }
-            resetPlayerArrow(player2);
         }
 
         accelerateBubbleDown(current->bubbleData);
@@ -813,7 +833,9 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
     }
 
     movePlayer(player1);
-    movePlayer(player2);
+    if (NUM_PLAYERS == 2) {
+        movePlayer(player2);
+    }
 
     // If the player has shot the arrow (in which case, they aren't ready to shoot any more),
     // update the arrow and check for collisions with the top edge
@@ -823,13 +845,18 @@ void updateGameState(BubbleLinkedListItem** pBubblesListHead, Player* player1, P
         destroyPlayerArrowAtTop(player1);
     }
 
-    if (!player2->readyToShootArrow) {
-        moveArrow(player2->shootingArrow);
-        destroyPlayerArrowAtTop(player2);
+    if (NUM_PLAYERS == 2) {
+        if (!player2->readyToShootArrow) {
+            moveArrow(player2->shootingArrow);
+            destroyPlayerArrowAtTop(player2);
+        }
     }
 
     checkAndServicePlayerShootRequest(player1);
-    checkAndServicePlayerShootRequest(player2);
+
+    if (NUM_PLAYERS == 2) {
+        checkAndServicePlayerShootRequest(player2);
+    }
 }
 
 void moveBubble(Bubble* bubble) {
