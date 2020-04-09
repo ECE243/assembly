@@ -114,7 +114,7 @@ void updateHEXDisplays(Player* player1, Player* player2);
 
 void waitForStartKeyPress();
 
-float map(float value, float istart, float istop, float ostart, float ostop);
+float converter(float data, float startingPointOne, float stoppingPointOne, float StartingPointTwo, float stoppingPointTwo);
 void playGameEndAudio();
 
 volatile int* const LEDR_PTR = (int*) 0xFF200000;
@@ -392,16 +392,18 @@ void waitForStartKeyPress() {
     }
 }
 
-float map(float value, float istart, float istop, float ostart, float ostop) {
-    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
+float converter(float data, float startingPointOne, float stoppingPointOne, float StartingPointTwo, float stoppingPointTwo) {
+    float convertedValue = StartingPointTwo + (stoppingPointTwo - StartingPointTwo) * ((data - startingPointOne) / (stoppingPointOne - startingPointOne));
+    
+    return convertedValue;
 }
 
 void playGameEndAudio(const int* musicData, int lengthOfMusic) {
     int fifospace = *(AUDIO_PTR + 1);
 
     while ((fifospace & 0x00FF0000) && (audio_buffer_index < lengthOfMusic)) {
-        *(AUDIO_PTR + 2) = (int) map(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
-        *(AUDIO_PTR + 3) = (int) map(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
+        *(AUDIO_PTR + 2) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
+        *(AUDIO_PTR + 3) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
         ++audio_buffer_index;
         fifospace = *(AUDIO_PTR + 1);
     }
