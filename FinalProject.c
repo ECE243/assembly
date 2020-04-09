@@ -381,7 +381,7 @@ void waitForStartKeyPress() {
 
     while (!enterKeyPressed) {
         unsigned PS2Data = *PS2_PTR;
-        while (PS2Data & 0x8000 == 0) {
+        while ((PS2Data & 0x8000) == 0) {
             PS2Data = *PS2_PTR;
         }
 
