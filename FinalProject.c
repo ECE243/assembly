@@ -29,6 +29,7 @@
 #define PLAYER2_MOVE_LEFT_KEYBOARD_CODE 0x6B
 #define PLAYER2_MOVE_RIGHT_KEYBOARD_CODE 0x74
 #define PLAYER2_SHOOT_KEYBOARD_CODE 0x75
+#define START_GAME_KEY_CODE 0x5A
 
 #define BUF_SIZE 55539   // about 10 seconds of buffer (@ 8K samples/sec)
 #define BUF_THRESHOLD 96 // 75% of 128 word buffer
@@ -104,6 +105,8 @@ void fetchKeyboardInputs(Player* player1, Player* player2);
 void fetchTimerStatus();
 void updateHEXDisplays(Player* player1, Player* player2);
 
+void waitForStartKeyPress();
+
 float map(float value, float istart, float istop, float ostart, float ostop);
 void playGameEndAudio();
 
@@ -176,6 +179,8 @@ int main(void) {
 
     drawStartScreen();
     clear_screen();
+
+    waitForStartKeyPress();
 
     int currentLevel = 1;
     while (currentLevel <= NUM_LEVELS_IN_GAME) {
@@ -328,6 +333,19 @@ void fetchTimerStatus() {
 void updateHEXDisplays(Player* player1, Player* player2) {
     *ADDR_7SEG1 = HEX_DISPLAY_DATA[player1->score];
     *ADDR_7SEG2 = HEX_DISPLAY_DATA[player2->score];
+}
+
+void waitForStartKeyPress() {
+    bool enterKeyPressed = false;
+
+    while (!enterKeyPressed) {
+        unsigned PS2Data = *PS2_PTR;
+        while (PS2Data & 0x8000 == 0) {
+            PS2Data = *PS2_PTR;
+        }
+
+        enterKeyPressed = (PS2Data & 0xFF) == START_GAME_KEY_CODE;
+    }
 }
 
 float map(float value, float istart, float istop, float ostart, float ostop) {
