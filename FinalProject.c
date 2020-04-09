@@ -122,7 +122,7 @@ int audio_buffer_index = 0;
 //-----------Graphics Function/Global Declarations------
 //------------------------------------------------------
 void initializeGraphics();
-void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2);
+void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2, int currentLevel);
 void drawStartScreen();
 void drawGameOverScreen();
 void drawYouWin();
@@ -187,7 +187,7 @@ int main(void) {
         initializeGame(&bubblesListHead, &player1, &player2, currentLevel);
 
         while (!gameOver) {
-            drawInGameScreen(bubblesListHead, player1, player2);
+            drawInGameScreen(bubblesListHead, player1, player2, currentLevel);
             updateIODevices(player1, player2);
             updateGameState(&bubblesListHead, player1, player2);
         }
@@ -371,7 +371,7 @@ void initializeGraphics() {
     clear_screen();
 }
 
-void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2) {
+void drawInGameScreen(const BubbleLinkedListItem* bubbleListHead, const Player* player1, const Player* player2, int currentLevel) {
     const BubbleLinkedListItem* currentListItem = bubbleListHead;
     while (currentListItem != NULL) {
         drawBubble(currentListItem->bubbleData, 0x07E0);
