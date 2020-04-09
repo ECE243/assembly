@@ -111,8 +111,8 @@ float map(float value, float istart, float istop, float ostart, float ostop);
 void playGameEndAudio();
 
 volatile int* const LEDR_PTR = (int*) 0xFF200000;
-volatile int* const ADDR_7SEG1 = (int*) 0xFF200020;
-volatile int* const ADDR_7SEG2 = (int*) 0xFF200030;
+volatile int* const HEX_PORT1_PTR = (int*) 0xFF200020;
+volatile int* const HEX_PORT2_PTR = (int*) 0xFF200030;
 volatile int* const PS2_PTR = (int*) 0xFF200100;
 volatile int* const AUDIO_PTR = (int*) 0xFF203040;
 volatile int* const A9_TIMER_PTR = (int*) 0xFFFEC600;
@@ -240,8 +240,8 @@ void initializeIODevices() {
 }
 
 void initializeHEXDisplays() {
-    *ADDR_7SEG1 = HEX_DISPLAY_DATA[0];
-    *ADDR_7SEG2 = HEX_DISPLAY_DATA[0];
+    *HEX_PORT1_PTR = HEX_DISPLAY_DATA[0];
+    *HEX_PORT2_PTR = HEX_DISPLAY_DATA[0];
 }
 
 void initializeTimer() {
@@ -331,8 +331,8 @@ void fetchTimerStatus() {
 }
 
 void updateHEXDisplays(Player* player1, Player* player2) {
-    *ADDR_7SEG1 = HEX_DISPLAY_DATA[player1->score];
-    *ADDR_7SEG2 = HEX_DISPLAY_DATA[player2->score];
+    *HEX_PORT1_PTR = (HEX_DISPLAY_DATA[player1->score / 10] << 8) | HEX_DISPLAY_DATA[player1->score % 10];
+    *HEX_PORT2_PTR = (HEX_DISPLAY_DATA[player2->score / 10] << 8) | HEX_DISPLAY_DATA[player2->score % 10];
 }
 
 void waitForStartKeyPress() {
