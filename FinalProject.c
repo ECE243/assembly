@@ -401,8 +401,8 @@ float converter(float data, float startingPointOne, float stoppingPointOne, floa
 void playGameEndAudio(const int* musicData, int lengthOfMusic) {
     int fifospace = *(AUDIO_PTR + 1);
 
-    while ((fifospace & 0x00FF0000) && (audio_buffer_index < lengthOfMusic)) { 
-        *(AUDIO_PTR + 2) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
+    while ((fifospace & 0x00FF0000) && (audio_buffer_index < lengthOfMusic)) { // available write space right
+        *(AUDIO_PTR + 2) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);//writing to both channels
         *(AUDIO_PTR + 3) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
         audio_buffer_index++;
         fifospace = *(AUDIO_PTR + 1);
