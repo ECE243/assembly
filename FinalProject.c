@@ -392,7 +392,7 @@ void waitForStartKeyPress() {
     }
 }
 
-float converter(float data, float startingPointOne, float stoppingPointOne, float StartingPointTwo, float stoppingPointTwo) {
+float converter(float data, float startingPointOne, float stoppingPointOne, float StartingPointTwo, float stoppingPointTwo) { // we are converting the range from the current range to the target range for the audio, to make it compatible with the CPUlator
     float convertedValue = StartingPointTwo + (stoppingPointTwo - StartingPointTwo) * ((data - startingPointOne) / (stoppingPointOne - startingPointOne));
     
     return convertedValue;
@@ -401,10 +401,10 @@ float converter(float data, float startingPointOne, float stoppingPointOne, floa
 void playGameEndAudio(const int* musicData, int lengthOfMusic) {
     int fifospace = *(AUDIO_PTR + 1);
 
-    while ((fifospace & 0x00FF0000) && (audio_buffer_index < lengthOfMusic)) {
+    while ((fifospace & 0x00FF0000) && (audio_buffer_index < lengthOfMusic)) { 
         *(AUDIO_PTR + 2) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
         *(AUDIO_PTR + 3) = (int) converter(musicData[audio_buffer_index], -32767, 32767, 0, 2000000000);
-        ++audio_buffer_index;
+        audio_buffer_index++;
         fifospace = *(AUDIO_PTR + 1);
     }
 }
