@@ -174,7 +174,7 @@ int main(void) {
     Player* player1;
     Player* player2;
 
-    //drawStartScreen();
+    drawStartScreen();
     clear_screen();
 
     int currentLevel = 1;
